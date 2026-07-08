@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <TraitDef>
+    <defName>Synapse_Bipolar</defName>
+    <commonality>0</commonality> <!-- Only assigned dynamically by AI -->
+    <degreeDatas>
+      <li>
+        <label>bipolar</label>
+        <description>{PAWN_nameDef} suffers from extreme mood swings. They are capable of plunging into the deepest despairs, but when things are going perfectly, they enter periods of intense euphoria and reckless behavior.</description>
+      </li>
+    </degreeDatas>
+  </TraitDef>
+
+</Defs>

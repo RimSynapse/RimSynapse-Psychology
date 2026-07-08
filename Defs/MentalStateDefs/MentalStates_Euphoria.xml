@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  
+  <MentalStateDef>
+    <defName>Synapse_EuphoricReckless</defName>
+    <label>euphoric (reckless)</label>
+    <stateClass>RimSynapse.Psychology.MentalStates.Euphoria.MentalState_EuphoricReckless</stateClass>
+    <category>Minor</category>
+    <baseInspectLine>Mental state: Euphoric (Reckless)</baseInspectLine>
+    <recoverFromSleep>true</recoverFromSleep>
+    <nameColor>(0.2, 0.8, 0.2)</nameColor>
+    <beginLetterLabel>euphoria</beginLetterLabel>
+    <beginLetter>{0} is experiencing an extreme high and is behaving recklessly!</beginLetter>
+    <beginLetterDef>PositiveEvent</beginLetterDef>
+    <recoveryMessage>{0} has calmed down.</recoveryMessage>
+  </MentalStateDef>
+
+</Defs>

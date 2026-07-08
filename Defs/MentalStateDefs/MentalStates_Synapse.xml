@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  
+  <MentalStateDef>
+    <defName>Synapse_SuicidalAntagonize</defName>
+    <label>suicidal (antagonize)</label>
+    <stateClass>RimSynapse.Psychology.MentalStates.MentalState_SuicidalAntagonize</stateClass>
+    <category>Extreme</category>
+    <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
+    <baseInspectLine>Mental state: Suicidal (Antagonizing animal)</baseInspectLine>
+    <recoverFromSleep>true</recoverFromSleep>
+    <nameColor>(0.8, 0.2, 0.2)</nameColor>
+    <beginLetterLabel>suicidal</beginLetterLabel>
+    <beginLetter>After everything they've been through, {0} has lost the will to live. They are stripping off their gear and seeking a violent end.</beginLetter>
+    <beginLetterDef>ThreatSmall</beginLetterDef>
+    <recoveryMessage>{0} has regained some hope and given up their suicidal thoughts.</recoveryMessage>
+  </MentalStateDef>
+
+  <MentalStateDef>
+    <defName>Synapse_SuicidalBurn</defName>
+    <label>suicidal (burn)</label>
+    <stateClass>RimSynapse.Psychology.MentalStates.MentalState_SuicidalBurn</stateClass>
+    <category>Extreme</category>
+    <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
+    <baseInspectLine>Mental state: Suicidal (Barricading and burning)</baseInspectLine>
+    <recoverFromSleep>true</recoverFromSleep>
+    <nameColor>(0.8, 0.2, 0.2)</nameColor>
+    <beginLetterLabel>suicidal</beginLetterLabel>
+    <beginLetter>Unable to cope with the reality around them, {0} has decided to end it all. They have left a suicide note and intend to burn themselves alive.</beginLetter>
+    <beginLetterDef>ThreatSmall</beginLetterDef>
+    <recoveryMessage>{0} has regained some hope and stopped the fire.</recoveryMessage>
+  </MentalStateDef>
+
+  <MentalStateDef>
+    <defName>Synapse_SuicidalStarve</defName>
+    <label>suicidal (starving)</label>
+    <stateClass>RimSynapse.Psychology.MentalStates.MentalState_SuicidalStarve</stateClass>
+    <category>Extreme</category>
+    <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
+    <baseInspectLine>Mental state: Suicidal (Starving)</baseInspectLine>
+    <recoverFromSleep>true</recoverFromSleep>
+    <nameColor>(0.8, 0.2, 0.2)</nameColor>
+    <beginLetterLabel>suicidal</beginLetterLabel>
+    <beginLetter>{0} has completely lost their will to live. They will refuse to eat until they pass away.</beginLetter>
+    <beginLetterDef>NegativeEvent</beginLetterDef>
+    <recoveryMessage>{0} has regained their will to live and decided to eat.</recoveryMessage>
+  </MentalStateDef>
+
+</Defs>

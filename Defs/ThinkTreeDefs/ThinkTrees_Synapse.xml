@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <ThinkTreeDef>
+    <defName>Synapse_MentalStatesCritical</defName>
+    <insertTag>MentalStateCritical</insertTag>
+    <insertPriority>100</insertPriority>
+    <thinkRoot Class="ThinkNode_Priority">
+      <subNodes>
+        
+        <!-- Suicidal: Antagonize -->
+        <li Class="ThinkNode_ConditionalMentalState">
+          <state>Synapse_SuicidalAntagonize</state>
+          <subNodes>
+            <li Class="RimSynapse.Psychology.MentalStates.JobGiver_SuicidalAntagonize" />
+          </subNodes>
+        </li>
+
+        <!-- Suicidal: Burn -->
+        <li Class="ThinkNode_ConditionalMentalState">
+          <state>Synapse_SuicidalBurn</state>
+          <subNodes>
+            <li Class="RimSynapse.Psychology.MentalStates.JobGiver_SuicidalBurn" />
+          </subNodes>
+        </li>
+
+        <!-- Suicidal: Starve -->
+        <li Class="ThinkNode_ConditionalMentalState">
+          <state>Synapse_SuicidalStarve</state>
+          <subNodes>
+            <li Class="RimSynapse.Psychology.MentalStates.JobGiver_SuicidalStarve" />
+          </subNodes>
+        </li>
+
+      </subNodes>
+    </thinkRoot>
+  </ThinkTreeDef>
+</Defs>
