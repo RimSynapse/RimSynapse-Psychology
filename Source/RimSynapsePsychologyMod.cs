@@ -26,20 +26,7 @@ namespace RimSynapse.Psychology
             Listing_Standard listingStandard = new Listing_Standard();
             listingStandard.Begin(inRect);
             
-            listingStandard.CheckboxLabeled("Enable Debug Logging", ref Settings.enableDebugLogging, "Dumps all AI psychology updates and events to a text file.");
-
-            if (listingStandard.ButtonText("Open Log Folder"))
-            {
-                string path = System.IO.Path.Combine(GenFilePaths.SaveDataFolderPath, "RimSynapse_Logs", "Psychology");
-                if (System.IO.Directory.Exists(path))
-                {
-                    Application.OpenURL("file://" + path);
-                }
-                else
-                {
-                    Messages.Message("Log folder does not exist yet.", MessageTypeDefOf.RejectInput, false);
-                }
-            }
+            listingStandard.Label("Note: Debug logging is now globally configured in RimSynapse Core settings.");
 
             listingStandard.End();
             base.DoSettingsWindowContents(inRect);

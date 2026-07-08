@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <!-- Euphoria Break -->
+  <MentalBreakDef>
+    <defName>Synapse_EuphoriaBreak</defName>
+    <mentalState>Synapse_EuphoricReckless</mentalState>
+    <baseCommonality>0</baseCommonality> <!-- Only triggered by LLM -->
+    <intensity>Minor</intensity>
+  </MentalBreakDef>
+
+  <!-- Suicidal Breaks -->
+  <MentalBreakDef>
+    <defName>Synapse_SuicidalAntagonizeBreak</defName>
+    <mentalState>Synapse_SuicidalAntagonize</mentalState>
+    <baseCommonality>0</baseCommonality> <!-- Only triggered by LLM -->
+    <intensity>Extreme</intensity>
+  </MentalBreakDef>
+
+  <MentalBreakDef>
+    <defName>Synapse_SuicidalBurnBreak</defName>
+    <mentalState>Synapse_SuicidalBurn</mentalState>
+    <baseCommonality>0</baseCommonality> <!-- Only triggered by LLM -->
+    <intensity>Extreme</intensity>
+  </MentalBreakDef>
+
+  <MentalBreakDef>
+    <defName>Synapse_SuicidalStarveBreak</defName>
+    <mentalState>Synapse_SuicidalStarve</mentalState>
+    <baseCommonality>0</baseCommonality> <!-- Only triggered by LLM -->
+    <intensity>Extreme</intensity>
+  </MentalBreakDef>
+
+</Defs>

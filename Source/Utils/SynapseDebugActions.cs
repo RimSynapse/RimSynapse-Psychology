@@ -1,0 +1,108 @@
+using System;
+using System.Linq;
+using Verse;
+using LudeonTK;
+using RimWorld;
+using RimSynapse.Comps;
+using RimSynapse.Psychology.Comps;
+using RimSynapse.Psychology.API;
+using RimSynapse.Models;
+
+namespace RimSynapse.Psychology.Utils
+{
+    public static class SynapseDebugActions
+    {
+        [DebugAction("RimSynapse", "Psychology: Dump State (Log)", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void DumpPsychologyState(Pawn p)
+        {
+            if (p == null) return;
+            var comp = p.TryGetComp<SynapseCorePawnComp>();
+            if (comp == null)
+            {
+                Log.Message($"[RimSynapse] {p.Name} has no SynapseCorePawnComp.");
+                return;
+            }
+            
+            Log.Message($"--- Psychology State for {p.Name} ---");
+            Log.Message($"Memories: {comp.memories.Count}");
+            foreach (var m in comp.memories)
+            {
+                Log.Message($"  - [{m.memoryType}] {m.summary} (w:{m.weight}) refs:{m.timesReferenced}");
+            }
+            
+            var psychComp = p.TryGetComp<SynapsePawnComp>();
+            if (psychComp != null)
+            {
+                Log.Message($"Break Category: {psychComp.breakCategory}");
+                Log.Message($"Zealot: {psychComp.ideologyZealot}");
+                Log.Message($"Has Backstory Memory: {psychComp.hasBackstoryMemory}");
+            }
+        }
+
+        [DebugAction("RimSynapse", "Psychology: Add Random Memory", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void AddRandomMemory(Pawn p)
+        {
+            if (p == null) return;
+            var memory = new WeightedMemory
+            {
+                memoryType = "Social",
+                summary = $"Debug memory generated at tick {Find.TickManager.TicksGame}",
+                weight = Rand.Range(0.1f, 0.9f),
+                timesReferenced = 0
+            };
+            SynapsePsychology.AddMemory(p, memory);
+        }
+        
+        [DebugAction("RimSynapse", "Psychology: Force Daily Review", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void ForceDailyReview(Pawn p)
+        {
+            if (p == null) return;
+            SynapsePsychology.QueueDailyPsychologyReview(p, 0.5f, new System.Collections.Generic.List<WeightedMemory>());
+            Log.Message($"[RimSynapse] Forced daily psychology review for {p.Name}");
+        }
+
+        [DebugAction("RimSynapse", "Psychology: Trigger Euphoria", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void TriggerEuphoria(Pawn p)
+        {
+            if (p == null || p.mindState == null) return;
+            var stateDef = DefDatabase<MentalStateDef>.GetNamedSilentFail("Synapse_EuphoricReckless");
+            if (stateDef != null)
+            {
+                p.mindState.mentalStateHandler.TryStartMentalState(stateDef, "Debug command", true);
+            }
+        }
+        
+        [DebugAction("RimSynapse", "Psychology: Trigger Suicidal (Starve)", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void TriggerSuicidalStarve(Pawn p)
+        {
+            if (p == null || p.mindState == null) return;
+            var stateDef = DefDatabase<MentalStateDef>.GetNamedSilentFail("Synapse_SuicidalStarve");
+            if (stateDef != null)
+            {
+                p.mindState.mentalStateHandler.TryStartMentalState(stateDef, "Debug command", true);
+            }
+        }
+        
+        [DebugAction("RimSynapse", "Psychology: Trigger Suicidal (Burn)", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void TriggerSuicidalBurn(Pawn p)
+        {
+            if (p == null || p.mindState == null) return;
+            var stateDef = DefDatabase<MentalStateDef>.GetNamedSilentFail("Synapse_SuicidalBurn");
+            if (stateDef != null)
+            {
+                p.mindState.mentalStateHandler.TryStartMentalState(stateDef, "Debug command", true);
+            }
+        }
+        
+        [DebugAction("RimSynapse", "Psychology: Trigger Suicidal (Antagonize)", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
+        public static void TriggerSuicidalAntagonize(Pawn p)
+        {
+            if (p == null || p.mindState == null) return;
+            var stateDef = DefDatabase<MentalStateDef>.GetNamedSilentFail("Synapse_SuicidalAntagonize");
+            if (stateDef != null)
+            {
+                p.mindState.mentalStateHandler.TryStartMentalState(stateDef, "Debug command", true);
+            }
+        }
+    }
+}

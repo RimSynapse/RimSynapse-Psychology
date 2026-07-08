@@ -5,7 +5,7 @@
     <defName>Synapse_SuicidalAntagonize</defName>
     <label>suicidal (antagonize)</label>
     <stateClass>RimSynapse.Psychology.MentalStates.MentalState_SuicidalAntagonize</stateClass>
-    <category>Extreme</category>
+    <category>Malicious</category>
     <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
     <baseInspectLine>Mental state: Suicidal (Antagonizing animal)</baseInspectLine>
     <recoverFromSleep>true</recoverFromSleep>
@@ -20,7 +20,7 @@
     <defName>Synapse_SuicidalBurn</defName>
     <label>suicidal (burn)</label>
     <stateClass>RimSynapse.Psychology.MentalStates.MentalState_SuicidalBurn</stateClass>
-    <category>Extreme</category>
+    <category>Malicious</category>
     <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
     <baseInspectLine>Mental state: Suicidal (Barricading and burning)</baseInspectLine>
     <recoverFromSleep>true</recoverFromSleep>
@@ -35,7 +35,7 @@
     <defName>Synapse_SuicidalStarve</defName>
     <label>suicidal (starving)</label>
     <stateClass>RimSynapse.Psychology.MentalStates.MentalState_SuicidalStarve</stateClass>
-    <category>Extreme</category>
+    <category>Malicious</category>
     <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
     <baseInspectLine>Mental state: Suicidal (Starving)</baseInspectLine>
     <recoverFromSleep>true</recoverFromSleep>
