@@ -199,8 +199,13 @@ namespace RimSynapse.Psychology.API
         /// </summary>
         public static void QueueDailyPsychologyReview(Pawn pawn, float averageMood, System.Collections.Generic.List<WeightedMemory> dailyEvents)
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             // Connects to RimSynapse-Core LLM Queue
             // For now, this is a placeholder. 
+
+            sw.Stop();
+            RimSynapse.Psychology.Utils.PsychologyLogger.LogMetric(pawn, "QueueDailyPsychologyReview_Stub", sw.ElapsedMilliseconds);
         }
     }
 }
