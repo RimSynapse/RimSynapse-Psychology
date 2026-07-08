@@ -39,4 +39,11 @@
         </Reference>
     </ItemGroup>
 
+    <!-- NuGet packages -->
+    <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
 </Project>

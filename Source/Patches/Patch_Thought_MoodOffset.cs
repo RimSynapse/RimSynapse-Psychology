@@ -1,6 +1,7 @@
 using HarmonyLib;
 using RimWorld;
 using Verse;
+using RimSynapse.Comps;
 using RimSynapse.Psychology.Comps;
 
 namespace RimSynapse.Psychology.Patches
@@ -15,8 +16,8 @@ namespace RimSynapse.Psychology.Patches
 
             if (__instance.pawn == null) return;
 
-            var comp = __instance.pawn.GetComp<SynapsePawnComp>();
-            if (comp != null && comp.thoughtSensitivities.Count > 0)
+            var comp = __instance.pawn.GetComp<SynapseCorePawnComp>();
+            if (comp != null && comp.thoughtSensitivities != null)
             {
                 // Match by specific thought defName (e.g., "KnowColonistDied")
                 if (comp.thoughtSensitivities.TryGetValue(__instance.def.defName, out float multiplier))

@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using Verse;
 using RimWorld;
 using RimSynapse.Psychology.Comps;
-using RimSynapse.Psychology.Models;
+using RimSynapse.Models;
+using Newtonsoft.Json;
 
 namespace RimSynapse.Psychology.API
 {
@@ -13,12 +15,25 @@ namespace RimSynapse.Psychology.API
         /// Public API for other mods (primarily Storyteller) to add a memory
         /// to a pawn's SynapsePawnComp.
         /// </summary>
-        public static void AddMemory(Pawn pawn, WeightedMemory memory)
+        public static string GenerateContextSummary(Pawn pawn, List<RimSynapse.Models.WeightedMemory> customMemories = null)
         {
-            var comp = pawn.TryGetComp<SynapsePawnComp>();
+            var comp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (comp == null)
             {
-                Log.Warning($"[RimSynapse-Psychology] Cannot add memory — SynapsePawnComp not found on {pawn.Name}.");
+                Log.Warning($"[RimSynapse-Psychology] Cannot add memory — SynapseCorePawnComp not found on {pawn.Name}.");
+                return "";
+            }
+
+            var memoriesToProcess = customMemories ?? comp.memories;
+            return JsonConvert.SerializeObject(memoriesToProcess);
+        }
+
+        public static void AddMemory(Pawn pawn, WeightedMemory memory)
+        {
+            var comp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            if (comp == null)
+            {
+                Log.Warning($"[RimSynapse-Psychology] Cannot add memory — SynapseCorePawnComp not found on {pawn.Name}.");
                 return;
             }
 
@@ -31,7 +46,7 @@ namespace RimSynapse.Psychology.API
         /// </summary>
         public static void BumpMemory(Pawn pawn, string memorySummaryFragment, float bumpAmount = 0.2f)
         {
-            var comp = pawn.TryGetComp<SynapsePawnComp>();
+            var comp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (comp == null) return;
 
             var match = comp.memories.FirstOrDefault(m =>
@@ -50,7 +65,7 @@ namespace RimSynapse.Psychology.API
         /// </summary>
         public static float? GetOpinionIntegral(Pawn pawn, Pawn target)
         {
-            var comp = pawn.TryGetComp<SynapsePawnComp>();
+            var comp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (comp == null) return null;
 
             var samples = comp.opinionHistory
@@ -106,7 +121,7 @@ namespace RimSynapse.Psychology.API
         /// </summary>
         public static void UpdateSensitivities(Pawn pawn, System.Collections.Generic.Dictionary<string, float> newSensitivities)
         {
-            var comp = pawn.TryGetComp<SynapsePawnComp>();
+            var comp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (comp != null)
             {
                 comp.thoughtSensitivities = newSensitivities;
@@ -197,7 +212,7 @@ namespace RimSynapse.Psychology.API
         /// Triggered when the pawn goes to sleep. Queues their daily events and average mood
         /// for LLM processing to update long-term context modifiers and break severity.
         /// </summary>
-        public static void QueueDailyPsychologyReview(Pawn pawn, float averageMood, System.Collections.Generic.List<WeightedMemory> dailyEvents)
+        public static void QueueDailyPsychologyReview(Pawn pawn, float averageMood, System.Collections.Generic.List<RimSynapse.Models.WeightedMemory> dailyEvents)
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -205,7 +220,7 @@ namespace RimSynapse.Psychology.API
             // For now, this is a placeholder. 
 
             sw.Stop();
-            RimSynapse.Psychology.Utils.PsychologyLogger.LogMetric(pawn, "QueueDailyPsychologyReview_Stub", sw.ElapsedMilliseconds);
+            RimSynapse.Utils.SynapseFileLogger.LogMetric("Psychology", pawn, "QueueDailyPsychologyReview_Stub", sw.ElapsedMilliseconds);
         }
     }
 }

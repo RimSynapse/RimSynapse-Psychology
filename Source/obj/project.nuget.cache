@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "oKpHt1rHDN8=",
+  "dgSpecHash": "cy+Y8n8TTmw=",
   "success": true,
   "projectFilePath": "d:\\github\\RimSynapse-Psychology\\Source\\RimSynapsePsychology.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\sealt\\.nuget\\packages\\microsoft.netframework.referenceassemblies\\1.0.3\\microsoft.netframework.referenceassemblies.1.0.3.nupkg.sha512",
-    "C:\\Users\\sealt\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net472\\1.0.3\\microsoft.netframework.referenceassemblies.net472.1.0.3.nupkg.sha512"
+    "C:\\Users\\sealt\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net472\\1.0.3\\microsoft.netframework.referenceassemblies.net472.1.0.3.nupkg.sha512",
+    "C:\\Users\\sealt\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512"
   ],
   "logs": []
 }
