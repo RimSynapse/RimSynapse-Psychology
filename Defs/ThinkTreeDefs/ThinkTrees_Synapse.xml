@@ -15,6 +15,14 @@
           </subNodes>
         </li>
 
+        <!-- Euphoric: Reckless -->
+        <li Class="ThinkNode_ConditionalMentalState">
+          <state>Synapse_EuphoricReckless</state>
+          <subNodes>
+            <li Class="RimSynapse.Psychology.MentalStates.JobGiver_EuphoricReckless" />
+          </subNodes>
+        </li>
+
         <!-- Suicidal: Burn -->
         <li Class="ThinkNode_ConditionalMentalState">
           <state>Synapse_SuicidalBurn</state>

@@ -5,7 +5,7 @@
     <defName>Synapse_EuphoricReckless</defName>
     <label>euphoric (reckless)</label>
     <stateClass>RimSynapse.Psychology.MentalStates.Euphoria.MentalState_EuphoricReckless</stateClass>
-    <category>Misc</category>
+    <category>Aggro</category>
     <baseInspectLine>Mental state: Euphoric (Reckless)</baseInspectLine>
     <recoverFromSleep>true</recoverFromSleep>
     <nameColor>(0.2, 0.8, 0.2)</nameColor>

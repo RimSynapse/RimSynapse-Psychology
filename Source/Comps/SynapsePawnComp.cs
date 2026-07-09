@@ -28,6 +28,7 @@ namespace RimSynapse.Psychology.Comps
         // Track whether this pawn has had a backstory memory generated yet.
         // This helps queue LLM calls safely instead of freezing the game on spawn.
         public bool hasBackstoryMemory = false;
+        private int ticksToGenerateBackstory = 2500; // ~1 in-game hour delay to simulate LLM
 
         // Active AI-driven modifiers
         public BreakCategory breakCategory = BreakCategory.Default;
@@ -68,6 +69,7 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref breakIntensity, "breakIntensity", BreakIntensity.Medium);
             Scribe_Values.Look(ref wasAsleep, "wasAsleep", false);
             Scribe_Values.Look(ref lastExtremeNegativeTick, "lastExtremeNegativeTick", -1);
+            Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 2500);
         }
 
         public override void CompTickRare()
@@ -76,6 +78,17 @@ namespace RimSynapse.Psychology.Comps
             
             if (parent is Pawn pawn && pawn.Spawned && !pawn.Dead)
             {
+                // Async Backstory Stub
+                if (!hasBackstoryMemory && pawn.Faction == Faction.OfPlayer)
+                {
+                    ticksToGenerateBackstory -= 250;
+                    if (ticksToGenerateBackstory <= 0)
+                    {
+                        GenerateStubBackstory(pawn);
+                        hasBackstoryMemory = true;
+                    }
+                }
+
                 // Sleep Tracking & Daily Review (TickRare is 250 ticks)
                 if (pawn.needs != null && pawn.needs.mood != null)
                 {
@@ -102,6 +115,45 @@ namespace RimSynapse.Psychology.Comps
                     wasAsleep = isAsleep;
                 }
             }
+        }
+
+        public override IEnumerable<Gizmo> CompGetGizmosExtra()
+        {
+            foreach (var gizmo in base.CompGetGizmosExtra())
+            {
+                yield return gizmo;
+            }
+
+            if (parent is Pawn pawn && pawn.Faction == Faction.OfPlayer)
+            {
+                yield return new Command_Action
+                {
+                    defaultLabel = "Psychology",
+                    defaultDesc = "View this pawn's psychological profile, traits, and journal of core memories.",
+                    icon = ContentFinder<UnityEngine.Texture2D>.Get("UI/Commands/PsychologyIcon", true),
+                    action = () =>
+                    {
+                        Find.WindowStack.Add(new UI.Dialog_PawnPsychology(pawn));
+                    }
+                };
+            }
+        }
+
+        private void GenerateStubBackstory(Pawn pawn)
+        {
+            var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            if (coreComp == null) return;
+
+            coreComp.dynamicBackstory = $"{pawn.Name.ToStringShort} grew up in a harsh, unforgiving environment, learning early on that survival requires a pragmatic approach to morality. Despite their rugged exterior, they harbor a secret fascination with ancient literature and find solace in quiet moments studying the stars. This dichotomy of raw survivalism and quiet intellectualism defines their approach to life on the Rim.";
+            
+            coreComp.llmTraits.Clear();
+            coreComp.llmTraits.Add("INTJ");
+            coreComp.llmTraits.Add("Hypervigilant");
+            coreComp.llmTraits.Add("Pragmatic");
+
+            string title = "Backstory Discovered";
+            string text = $"{pawn.Name.ToStringShort} has shared their backstory with you.\n\nOpen their Psychology tab to learn more about their past and personality traits.";
+            Find.LetterStack.ReceiveLetter(title, text, LetterDefOf.NeutralEvent, pawn);
         }
 
     }

@@ -218,6 +218,7 @@ namespace RimSynapse.Psychology.API
 
             // Connects to RimSynapse-Core LLM Queue
             // For now, this is a placeholder. 
+            RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "DailyReviewStub", $"Would queue LLM review with {dailyEvents?.Count ?? 0} events and avg mood {averageMood:F2}. Waiting on Storyteller implementation.");
 
             sw.Stop();
             RimSynapse.Utils.SynapseFileLogger.LogMetric("Psychology", pawn, "QueueDailyPsychologyReview_Stub", sw.ElapsedMilliseconds);
