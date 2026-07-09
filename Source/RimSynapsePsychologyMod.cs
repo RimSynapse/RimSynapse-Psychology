@@ -55,6 +55,17 @@ namespace RimSynapse.Psychology
                     Weight = 1.5f,
                     CooldownTicks = 5000 // Check frequently, since it only fires if a pawn is flagged
                 });
+
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_LeaderBackstory",
+                (System.Func<bool>)API.SynapsePsychology.TriggerLeaderBackstoryGeneration,
+                new RimSynapse.Internal.OpportunisticTaskConfig
+                {
+                    Label = "Leader Backstory",
+                    Description = "Generates AI backstories for all faction leaders (World VIPs). Required before StoryTeller can generate faction histories.",
+                    Priority = 7, // High priority — Storyteller depends on these existing
+                    Weight = 2.0f,
+                    CooldownTicks = 5000 // Short cooldown — iterate through leaders quickly
+                });
             
             Log.Message("[RimSynapse-Psychology] Mod initialized.");
         }

@@ -5,6 +5,7 @@ using Verse;
 using RimWorld;
 using RimSynapse.Psychology.Comps;
 using RimSynapse.Models;
+using RimSynapse.Utils;
 using Newtonsoft.Json;
 
 namespace RimSynapse.Psychology.API
@@ -81,11 +82,8 @@ You MUST respond strictly in valid JSON format:
                     {
                         try
                         {
-                            string json = result.content.Trim();
-                            if (json.StartsWith("```json")) json = json.Substring(7);
-                            if (json.StartsWith("```")) json = json.Substring(3);
-                            if (json.EndsWith("```")) json = json.Substring(0, json.Length - 3);
-                            json = json.Trim();
+                            string json = JsonHelper.ExtractJson(result.content);
+                            if (json == null) { Log.Warning("[RimSynapse-Psychology] No JSON found in memory response."); return; }
 
                             var parsed = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, object>>>>(json);
                             if (parsed != null && parsed.ContainsKey("Memories"))
@@ -145,15 +143,54 @@ You MUST respond strictly in valid JSON format:
             var coreComp = targetPawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (coreComp == null) return false;
 
+            bool isLeader = targetPawn.Faction != null && targetPawn.Faction.leader == targetPawn;
             string factionName = targetPawn.Faction?.Name ?? "Outlander";
-            string title = targetPawn.royalty?.MostSeniorTitle?.def?.label ?? "Wanderer";
+            string factionType = targetPawn.Faction?.def?.LabelCap ?? "Faction";
+            string title = targetPawn.royalty?.MostSeniorTitle?.def?.label ?? (isLeader ? "Leader" : "Wanderer");
 
-            string systemPrompt = $@"You are {targetPawn.Name.ToStringShort}, a {title} from {factionName} in the RimWorld universe.
-Write a very short (2-3 sentences) autobiographical backstory about your past. Write in the first person ('I', 'me').";
+            string systemPrompt;
+            if (isLeader)
+            {
+                systemPrompt = $@"You are {targetPawn.Name.ToStringShort}, the {title} of {factionName} (a {factionType}) in the RimWorld universe.
+You must generate a detailed life history consisting of exactly 3 or 4 significant life events.
+These events MUST include:
+1. 'Faction Join' (or birth into the faction).
+2. 'Faction Rise' (how you gained influence).
+3. 'Faction Control' (how you took leadership).
+(Optional) 4. A flavor memory that adds personality.
+
+You MUST respond strictly in valid JSON format:
+{{
+  ""Memories"": [
+    {{
+      ""Summary"": ""I was born into the harsh wastes and immediately inducted into the tribe..."",
+      ""Tags"": [""Faction Join"", ""Origin""],
+      ""Weight"": 2.0
+    }}
+  ]
+}}";
+            }
+            else
+            {
+                systemPrompt = $@"You are {targetPawn.Name.ToStringShort}, a {title} from {factionName} in the RimWorld universe.
+Write a very short (2-3 sentences) autobiographical backstory about your past. Write in the first person ('I', 'me').
+
+You MUST respond strictly in valid JSON format:
+{{
+  ""Memories"": [
+    {{
+      ""Summary"": ""I grew up in a glitterworld before crashing here..."",
+      ""Tags"": [""Origin""],
+      ""Weight"": 1.0
+    }}
+  ]
+}}";
+            }
 
             string userMessage = $"Generate my backstory. I am currently at {Find.CurrentMap.Parent.Label}.";
 
-            var options = new ChatOptions { priority = -1 };
+            // If it's a leader, bump priority slightly so the Storyteller can evaluate them sooner
+            var options = new ChatOptions { priority = isLeader ? 5 : -1 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -161,21 +198,53 @@ Write a very short (2-3 sentences) autobiographical backstory about your past. W
                 userMessage,
                 result => 
                 {
-                    if (result.success)
-                    {
-                        AddMemory(targetPawn, new WeightedMemory
-                        {
-                            summary = result.content.Trim(),
-                            weight = 0.8f,
-                            memoryType = "Backstory"
-                        });
-                        MarkBackstoryCreated(targetPawn);
-                        Log.Message($"[RimSynapse-Psychology] Opportunistic visitor backstory generated for {targetPawn.Name.ToStringShort} (Important Pawn).");
-                    }
+                    HandleVisitorBackstoryResult(targetPawn, isLeader, result);
                 },
                 options
             );
             return true;
+        }
+
+        private static void HandleVisitorBackstoryResult(Pawn targetPawn, bool isLeader, ChatResult result)
+        {
+            if (result.success)
+            {
+                try
+                {
+                    string json = JsonHelper.ExtractJson(result.content);
+                    if (json == null) { Log.Warning("[RimSynapse-Psychology] No JSON found in backstory response."); return; }
+
+                    var parsed = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, object>>>>(json);
+                    if (parsed != null && parsed.ContainsKey("Memories"))
+                    {
+                        foreach (var memDict in parsed["Memories"])
+                        {
+                            var tagsList = new List<string>();
+                            if (memDict.ContainsKey("Tags") && memDict["Tags"] is Newtonsoft.Json.Linq.JArray arr)
+                            {
+                                tagsList = arr.Select(t => t.ToString()).ToList();
+                            }
+
+                            AddMemory(targetPawn, new WeightedMemory
+                            {
+                                summary = memDict["Summary"].ToString(),
+                                weight = Convert.ToSingle(memDict["Weight"]),
+                                baseWeight = Convert.ToSingle(memDict["Weight"]),
+                                decayRate = 0f, // Backstories don't decay
+                                tags = tagsList,
+                                memoryType = "Backstory",
+                                gameTick = Find.TickManager.TicksGame
+                            });
+                        }
+                        MarkBackstoryCreated(targetPawn);
+                        Log.Message($"[RimSynapse-Psychology] Opportunistic visitor backstory generated for {targetPawn.Name.ToStringShort} (Leader: {isLeader}).");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[RimSynapse-Psychology] Failed to parse visitor backstory JSON: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>
@@ -226,6 +295,85 @@ Write a very short (2-3 sentences) autobiographical backstory about your past. W
                 }
             }, true); // true = isOpportunistic
             
+            return true;
+        }
+
+        /// <summary>
+        /// Triggered by the Core framework when the LLM queue is idle.
+        /// Scans all world faction leaders for backstory generation.
+        /// These are "World VIPs" — they get backstories regardless of whether they're on a map.
+        /// If a leader dies or loses leadership, the new leader will get queued next cycle.
+        /// </summary>
+        public static bool TriggerLeaderBackstoryGeneration()
+        {
+            if (Current.ProgramState != ProgramState.Playing) return false;
+            if (Find.FactionManager == null) return false;
+
+            // Find a faction leader who needs a backstory
+            Pawn targetLeader = null;
+            foreach (var faction in Find.FactionManager.AllFactions)
+            {
+                if (faction == null || faction.IsPlayer || faction.Hidden) continue;
+                if (faction.leader == null || !faction.leader.RaceProps.Humanlike) continue;
+                if (faction.leader.Dead) continue;
+
+                var coreComp = faction.leader.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+                if (coreComp == null) continue;
+
+                if (NeedsBackstory(faction.leader))
+                {
+                    targetLeader = faction.leader;
+                    break; // Take the first one found — we do one per cycle
+                }
+            }
+
+            if (targetLeader == null) return false;
+
+            var leaderCoreComp = targetLeader.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            if (leaderCoreComp == null) return false;
+
+            string factionName = targetLeader.Faction?.Name ?? "Unknown Faction";
+            string factionType = targetLeader.Faction?.def?.LabelCap ?? "Faction";
+            string title = targetLeader.royalty?.MostSeniorTitle?.def?.label ?? "Leader";
+
+            // Get traits for richer backstory
+            string traits = targetLeader.story?.traits?.allTraits != null
+                ? string.Join(", ", targetLeader.story.traits.allTraits.Select(t => t.LabelCap))
+                : "None";
+
+            string systemPrompt = $@"You are {targetLeader.Name.ToStringShort}, the {title} of {factionName} (a {factionType}) in the RimWorld universe.
+Your traits are: {traits}.
+You must generate a detailed life history consisting of exactly 3 or 4 significant life events.
+These events MUST include:
+1. 'Faction Join' (or birth into the faction).
+2. 'Faction Rise' (how you gained influence).
+3. 'Faction Control' (how you took leadership).
+(Optional) 4. A flavor memory that adds personality.
+
+You MUST respond strictly in valid JSON format:
+{{
+  ""Memories"": [
+    {{
+      ""Summary"": ""I was born into the harsh wastes and immediately inducted into the tribe..."",
+      ""Tags"": [""Faction Join"", ""Origin""],
+      ""Weight"": 2.0
+    }}
+  ]
+}}";
+
+            string userMessage = $"Generate my backstory as faction leader of {factionName}.";
+            var options = new ChatOptions { priority = 7 }; // High priority — Storyteller depends on this
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result =>
+                {
+                    HandleVisitorBackstoryResult(targetLeader, true, result);
+                },
+                options
+            );
             return true;
         }
 
