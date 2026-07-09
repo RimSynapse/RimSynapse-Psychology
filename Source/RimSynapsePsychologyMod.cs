@@ -23,9 +23,27 @@ namespace RimSynapse.Psychology
             // Register with Core
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
             
-            // Register opportunistic background tasks (priority/cooldown defined in Defs/OpportunisticTasks/Psychology_Tasks.xml)
-            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory", API.SynapsePsychology.TriggerOpportunisticMemory);
-            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_VisitorBackstory", API.SynapsePsychology.TriggerOpportunisticVisitorBackstory);
+            // Register opportunistic background tasks with scheduling metadata
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory",
+                API.SynapsePsychology.TriggerOpportunisticMemory,
+                new RimSynapse.Internal.OpportunisticTaskConfig
+                {
+                    Label = "Memory Generation",
+                    Description = "Generates personalized AI-written memories for colonists based on recent events.",
+                    Priority = 5,
+                    Weight = 2.0f,
+                    CooldownTicks = 15000
+                });
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_VisitorBackstory",
+                API.SynapsePsychology.TriggerOpportunisticVisitorBackstory,
+                new RimSynapse.Internal.OpportunisticTaskConfig
+                {
+                    Label = "Visitor Backstory",
+                    Description = "Creates AI backstories for important NPCs during idle processing time.",
+                    Priority = 2,
+                    Weight = 1.0f,
+                    CooldownTicks = 10000
+                });
             
             Log.Message("[RimSynapse-Psychology] Mod initialized.");
         }
