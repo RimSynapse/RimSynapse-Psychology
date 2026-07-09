@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+    <!-- Homicidal Mental State -->
+    <MentalStateDef ParentName="BaseMentalState">
+        <defName>Synapse_MentalState_Homicidal</defName>
+        <stateClass>MentalState</stateClass>
+        <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Homicidal</workerClass>
+        <label>homicidal rampage</label>
+        <description>This person has completely snapped and is on a homicidal rampage. Depending on their traits, they will either hunt down the person they hate the most, or randomly slaughter anyone who is lightly armored.</description>
+        <category>Extreme</category>
+        <nameColor>(255,50,50)</nameColor>
+        <beginLetter>{0} has snapped and is on a homicidal rampage!</beginLetter>
+        <beginLetterDef>ThreatSmall</beginLetterDef>
+        <recoveryMessage>{0} is no longer homicidal.</recoveryMessage>
+        <baseInspectLine>Mental state: Homicidal</baseInspectLine>
+        <stateEffecter>Berserk</stateEffecter>
+        <tale>MentalStateBerserk</tale>
+        <recoverFromSleep>true</recoverFromSleep>
+        <blocksNormalThoughts>true</blocksNormalThoughts>
+    </MentalStateDef>
+</Defs>
