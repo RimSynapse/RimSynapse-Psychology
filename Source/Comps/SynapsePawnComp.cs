@@ -80,6 +80,7 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref lastJournalUpdateDay, "lastJournalUpdateDay", -1);
             Scribe_Values.Look(ref isAwaitingJournalUpdate, "isAwaitingJournalUpdate", false);
             Scribe_Values.Look(ref savedAverageMood, "savedAverageMood", 0.5f);
+            Scribe_Values.Look(ref hasCheckedAdulthood, "hasCheckedAdulthood", false);
 
             Scribe_Collections.Look(ref medicalProfile, "medicalProfile", LookMode.Value, LookMode.Value);
             
@@ -103,6 +104,12 @@ namespace RimSynapse.Psychology.Comps
                     {
                         GenerateAIBackstory(pawn);
                     }
+                }
+
+                // LLM-driven adulthood backstory for colony-born pawns turning 20
+                if (hasBackstoryMemory && !hasCheckedAdulthood)
+                {
+                    CheckAdulthoodBackstoryNeeded(pawn);
                 }
 
                 // Sleep Tracking & Daily Review (TickRare is 250 ticks)

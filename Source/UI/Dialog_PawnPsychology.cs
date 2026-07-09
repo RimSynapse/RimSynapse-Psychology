@@ -5,6 +5,7 @@ using Verse;
 using RimWorld;
 using RimSynapse.Comps;
 using RimSynapse.Psychology.Comps;
+using RimSynapse.Utils;
 
 namespace RimSynapse.Psychology.UI
 {
@@ -13,7 +14,6 @@ namespace RimSynapse.Psychology.UI
         private enum PsychologyTab
         {
             Profile,
-            Backstory,
             Memories
         }
 
@@ -21,7 +21,6 @@ namespace RimSynapse.Psychology.UI
         private SynapseCorePawnComp coreComp;
         private PsychologyTab currentTab = PsychologyTab.Profile;
         
-        private Vector2 backstoryScrollPosition = Vector2.zero;
         private Vector2 memoriesScrollPosition = Vector2.zero;
         private Vector2 profileScrollPosition = Vector2.zero;
         
@@ -77,7 +76,6 @@ namespace RimSynapse.Psychology.UI
             List<TabRecord> tabs = new List<TabRecord>
             {
                 new TabRecord("Psychological Profile", () => currentTab = PsychologyTab.Profile, currentTab == PsychologyTab.Profile),
-                new TabRecord("Backstory", () => currentTab = PsychologyTab.Backstory, currentTab == PsychologyTab.Backstory),
                 new TabRecord("Memories", () => currentTab = PsychologyTab.Memories, currentTab == PsychologyTab.Memories)
             };
             
@@ -90,9 +88,6 @@ namespace RimSynapse.Psychology.UI
             {
                 case PsychologyTab.Profile:
                     DrawProfileTab(contentRect);
-                    break;
-                case PsychologyTab.Backstory:
-                    DrawBackstoryTab(contentRect);
                     break;
                 case PsychologyTab.Memories:
                     DrawMemoriesTab(contentRect);
@@ -182,20 +177,6 @@ namespace RimSynapse.Psychology.UI
             Widgets.EndScrollView();
         }
 
-        private void DrawBackstoryTab(Rect rect)
-        {
-            string backstory = string.IsNullOrEmpty(coreComp.dynamicBackstory) 
-                ? "The depths of this pawn's mind remain a mystery. More time is needed to form a psychological profile." 
-                : coreComp.dynamicBackstory;
-
-            float textHeight = Text.CalcHeight(backstory, rect.width - 20f);
-            Rect viewRect = new Rect(0f, 0f, rect.width - 20f, textHeight);
-            
-            Widgets.BeginScrollView(rect, ref backstoryScrollPosition, viewRect);
-            Widgets.Label(new Rect(0f, 0f, viewRect.width, viewRect.height), backstory);
-            Widgets.EndScrollView();
-        }
-
         private void DrawMemoriesTab(Rect rect)
         {
             if (coreComp.memories.Count == 0)
@@ -204,8 +185,11 @@ namespace RimSynapse.Psychology.UI
                 return;
             }
 
+            // Sort chronologically (oldest first) using absTick
+            var sortedMemories = coreComp.memories.OrderBy(m => m.absTick).ToList();
+
             float viewHeight = 0f;
-            foreach (var memory in coreComp.memories.OrderByDescending(m => m.gameTick))
+            foreach (var memory in sortedMemories)
             {
                 viewHeight += Text.CalcHeight(memory.summary, rect.width - 20f) + 30f;
             }
@@ -215,19 +199,27 @@ namespace RimSynapse.Psychology.UI
             Widgets.BeginScrollView(rect, ref memoriesScrollPosition, viewRect);
             float currentEntryY = 0f;
             
-            foreach (var memory in coreComp.memories.OrderByDescending(m => m.gameTick))
+            // Get longitude for date formatting (use 0 if pawn has no map)
+            float longitude = pawn.Map != null ? Find.WorldGrid.LongLatOf(pawn.Map.Tile).x : 0f;
+            
+            foreach (var memory in sortedMemories)
             {
-                int ticks = memory.gameTick;
-                int day = GenDate.DayOfYear(ticks, Find.WorldGrid.LongLatOf(pawn.Map.Tile).x);
-                Quadrum quadrum = GenDate.Quadrum(ticks, Find.WorldGrid.LongLatOf(pawn.Map.Tile).x);
-                int year = GenDate.Year(ticks, Find.WorldGrid.LongLatOf(pawn.Map.Tile).x);
-                string dateStr = $"{day.ToString()} of {quadrum.Label()}, {year}";
+                // Use absTick for proper date rendering
+                long ticks = memory.absTick;
+                string dateStr = SynapseDateHelper.FormatAbsTick(ticks, longitude);
+                
+                // Calculate pawn's age at this memory
+                int ageAtMemory = SynapseDateHelper.GetAgeAtAbsTick(pawn, ticks);
+                string ageStr = ageAtMemory >= 0 ? $"Age {ageAtMemory}" : "";
 
                 string tagsStr = memory.tags.Any() ? $"[{string.Join("] [", memory.tags)}]" : "[Misc]";
 
                 Rect dateRect = new Rect(0f, currentEntryY, viewRect.width, 20f);
                 GUI.color = Color.gray;
-                Widgets.Label(dateRect, $"{dateStr}   {tagsStr}");
+                string headerLine = !string.IsNullOrEmpty(ageStr) 
+                    ? $"{dateStr}  ({ageStr})   {tagsStr}" 
+                    : $"{dateStr}   {tagsStr}";
+                Widgets.Label(dateRect, headerLine);
                 GUI.color = Color.white;
                 currentEntryY += 20f;
 
