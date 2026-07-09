@@ -7,13 +7,21 @@
     <thinkRoot Class="ThinkNode_Priority">
       <subNodes>
         
-        <!-- Homicidal -->
-        <li Class="ThinkNode_ConditionalMentalState">
-          <state>Synapse_MentalState_Homicidal</state>
-          <subNodes>
-            <li Class="RimSynapse.Psychology.MentalStates.JobGiver_Homicidal" />
-          </subNodes>
-        </li>
+        <!-- Homicidal Rampage -->
+    <li Class="ThinkNode_ConditionalMentalState">
+      <state>Synapse_MentalState_Homicidal</state>
+      <subNodes>
+        <li Class="RimSynapse.Psychology.MentalStates.JobGiver_Homicidal" />
+      </subNodes>
+    </li>
+    
+    <!-- Abandon Colony -->
+    <li Class="ThinkNode_ConditionalMentalState">
+      <state>Synapse_MentalState_AbandonColony</state>
+      <subNodes>
+        <li Class="RimSynapse.Psychology.MentalStates.JobGiver_AbandonColony" />
+      </subNodes>
+    </li>
 
         <!-- Suicidal: Antagonize -->
         <li Class="ThinkNode_ConditionalMentalState">

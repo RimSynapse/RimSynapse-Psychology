@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+    <MentalStateDef ParentName="BaseMentalState">
+        <defName>Synapse_MentalState_AbandonColony</defName>
+        <stateClass>MentalState</stateClass>
+        <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_AbandonColony</workerClass>
+        <label>abandoning colony</label>
+        <description>This person has carefully evaluated their situation and concluded that they are better off surviving alone in the wilderness. They are packing their things and leaving.</description>
+        <category>Misc</category>
+        <nameColor>(200,200,200)</nameColor>
+        <beginLetter>{0} has decided to permanently abandon the colony!</beginLetter>
+        <beginLetterDef>ThreatSmall</beginLetterDef>
+        <recoveryMessage>{0} changed their mind and decided to stay.</recoveryMessage>
+        <baseInspectLine>Mental state: Abandoning colony</baseInspectLine>
+        <recoverFromSleep>true</recoverFromSleep>
+    </MentalStateDef>
+</Defs>

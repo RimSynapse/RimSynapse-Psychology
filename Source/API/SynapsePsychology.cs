@@ -221,7 +221,7 @@ namespace RimSynapse.Psychology.API
             if (pawnComp == null || coreComp == null) return;
 
             string systemPrompt = @"You are a clinical psychologist in the RimWorld universe writing a formal medical evaluation.
-Based on this colonist's average mood today and recent journal events, assess the following 8 categories:
+Based on this colonist's average mood today, their recent journal events, their survival skills, and the state of the colony, assess the following 8 categories (write 1-2 sentences each):
 - Relationships (How they feel about others)
 - Trauma (Recent pain or historical suffering)
 - ShapingEvents (Major life events, e.g., wedding, birth, deaths)
@@ -230,6 +230,8 @@ Based on this colonist's average mood today and recent journal events, assess th
 - Fulfillment (Whether their work aligns with their passions)
 - Arrogance (Ego related to their titles or skills)
 - Dedication (Are they discontent? Likely to rebel or leave?)
+
+You must also provide an 'AbandonmentRiskScore' (0-100) representing how likely they are to permanently abandon the colony (or rebel if a slave). High survival skills and low satisfaction increase this risk.
 
 You MUST respond strictly in valid JSON format. Do not include markdown formatting or extra text.
 {
@@ -240,15 +242,29 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
   ""Satisfaction"": ""1-2 sentences..."",
   ""Fulfillment"": ""1-2 sentences..."",
   ""Arrogance"": ""1-2 sentences..."",
-  ""Dedication"": ""1-2 sentences...""
+  ""Dedication"": ""1-2 sentences..."",
+  ""AbandonmentRiskScore"": 0
 }";
 
             string recentEvents = dailyEvents == null || dailyEvents.Count == 0 
                 ? "No significant events today." 
                 : string.Join("\n", dailyEvents.Select(e => $"- {e.summary}"));
 
+            int colonySize = pawn.Map?.mapPawns?.FreeColonistsCount ?? 1;
+            int melee = pawn.skills?.GetSkill(SkillDefOf.Melee)?.Level ?? 0;
+            int shooting = pawn.skills?.GetSkill(SkillDefOf.Shooting)?.Level ?? 0;
+            int cooking = pawn.skills?.GetSkill(SkillDefOf.Cooking)?.Level ?? 0;
+            int medicine = pawn.skills?.GetSkill(SkillDefOf.Medicine)?.Level ?? 0;
+
+            string statusText = pawn.IsColonist ? "Colonist" : (pawn.IsPrisoner ? "Prisoner" : (pawn.IsSlave ? "Slave" : "Guest"));
+            NeedDef suppressionDef = DefDatabase<NeedDef>.GetNamedSilentFail("Suppression");
+            string suppression = (pawn.IsSlave && suppressionDef != null) ? $"\nSuppression: {pawn.needs?.TryGetNeed(suppressionDef)?.CurLevelPercentage:P0}" : "";
+
             string userMessage = $@"Patient Name: {pawn.Name.ToStringShort}
-Average Mood Today: {averageMood:F2}
+Status: {statusText}
+Colony Size: {colonySize}
+Survival Skills: Melee {melee}, Shooting {shooting}, Cooking {cooking}, Medicine {medicine}
+Average Mood Today: {averageMood:F2}{suppression}
 Recent Journal Entries:
 {recentEvents}";
 
@@ -269,12 +285,31 @@ Recent Journal Entries:
                             if (json.EndsWith("```")) json = json.Substring(0, json.Length - 3);
                             json = json.Trim();
 
-                            var parsed = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                            var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
                             if (parsed != null)
                             {
                                 foreach (var kvp in parsed)
                                 {
-                                    pawnComp.medicalProfile[kvp.Key] = kvp.Value;
+                                    if (kvp.Key == "AbandonmentRiskScore")
+                                    {
+                                        int riskScore = Convert.ToInt32(kvp.Value);
+                                        // Trigger abandonment state if risk is extremely high and they are a free colonist
+                                        if (riskScore > 90 && pawn.IsColonist && !pawn.Downed && !pawn.InMentalState)
+                                        {
+                                            SynapseGameComponent.Enqueue(() =>
+                                            {
+                                                var stateDef = DefDatabase<MentalStateDef>.GetNamedSilentFail("Synapse_MentalState_AbandonColony");
+                                                if (stateDef != null)
+                                                {
+                                                    pawn.mindState.mentalStateHandler.TryStartMentalState(stateDef, "Psychological evaluation", true);
+                                                }
+                                            });
+                                        }
+                                    }
+                                    else
+                                    {
+                                        pawnComp.medicalProfile[kvp.Key] = kvp.Value.ToString();
+                                    }
                                 }
                             }
                         }
