@@ -42,14 +42,16 @@ CRITICAL REQUIREMENTS:
 2. You MUST invent one specific, vivid memory (good or bad) from your childhood that explains your behavior.
 3. You MUST invent one specific, vivid memory (good or bad) from your adulthood that shaped who you are today.
 4. The story MUST be 300-500 words long.
-5. After the story, provide exactly 3 psychological archetype keywords that describe you (e.g., INTJ, Hypervigilant, Pragmatic).
-6. Finally, provide a 1-sentence journal entry describing your first impression of arriving/surviving on this world.
+5. After the story, under [TRAITS], you MUST provide exactly 3 psychological archetypes:
+   - First: A Jungian personality type (MBTI, e.g., ENFP, INTJ, INTP, INFJ, ESTP, etc. - This must always be evaluated and included).
+   - Second: A Core Archetype (e.g., Caregiver, Outlaw, Creator, Jester, Sage, Ruler, Hero).
+   - Third: A Temperament/Behavioral trait (e.g., Sanguine, Melancholic, Phlegmatic, Choleric).
 
 Format your response exactly like this:
 [STORY]
 (Your 300-500 word story here)
 [TRAITS]
-Keyword1, Keyword2, Keyword3
+Jungian Type: ENFP, Core Archetype: Outlaw, Temperament: Sanguine
 [FIRST_IMPRESSION]
 (1 sentence journal entry here)";
 

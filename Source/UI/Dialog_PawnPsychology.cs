@@ -34,6 +34,7 @@ namespace RimSynapse.Psychology.UI
             this.forcePause = false;
             this.doCloseX = true;
             this.draggable = true;
+            this.resizeable = true;
             this.closeOnClickedOutside = true;
             this.absorbInputAroundWindow = false;
         }
@@ -47,7 +48,27 @@ namespace RimSynapse.Psychology.UI
             Widgets.DrawWindowBackground(headerRect);
             
             Text.Font = GameFont.Medium;
-            Widgets.Label(headerRect, $"{pawn.Name.ToStringShort}'s Psychological Profile");
+            Text.Anchor = TextAnchor.MiddleCenter;
+
+            string fullName = pawn.LabelShort;
+            if (pawn.Name is NameTriple nameTriple)
+            {
+                if (!string.IsNullOrEmpty(nameTriple.Nick))
+                {
+                    fullName = $"{nameTriple.First} \"{nameTriple.Nick}\" {nameTriple.Last}";
+                }
+                else
+                {
+                    fullName = $"{nameTriple.First} {nameTriple.Last}";
+                }
+            }
+            else if (pawn.Name != null)
+            {
+                fullName = pawn.Name.ToStringFull;
+            }
+
+            Widgets.Label(headerRect, $"{fullName}'s Psychological Profile");
+            Text.Anchor = TextAnchor.UpperLeft;
             Text.Font = GameFont.Small;
 
             // Setup Tab space
@@ -93,12 +114,22 @@ namespace RimSynapse.Psychology.UI
             Widgets.Label(traitsHeaderRect, "Psychological Archetypes");
             Text.Font = GameFont.Small;
             
-            Rect traitsRect = new Rect(portraitRect.xMax + 20f, traitsHeaderRect.yMax, traitsHeaderRect.width, 60f);
-            string traitsLabel = coreComp.llmTraits.Any() 
-                ? string.Join(" • ", coreComp.llmTraits) 
-                : "Awaiting LLM psychological evaluation...";
+            float bulletY = traitsHeaderRect.yMax + 5f;
             GUI.color = new Color(0.7f, 0.7f, 1f);
-            Widgets.Label(traitsRect, traitsLabel);
+            if (coreComp.llmTraits.Any())
+            {
+                foreach (var trait in coreComp.llmTraits)
+                {
+                    Rect bulletRect = new Rect(portraitRect.xMax + 20f, bulletY, traitsHeaderRect.width, 24f);
+                    Widgets.Label(bulletRect, $"• {trait}");
+                    bulletY += 24f;
+                }
+            }
+            else
+            {
+                Rect bulletRect = new Rect(portraitRect.xMax + 20f, bulletY, traitsHeaderRect.width, 40f);
+                Widgets.Label(bulletRect, "• Awaiting LLM psychological evaluation...");
+            }
             GUI.color = Color.white;
             
             curY = portraitRect.yMax + 30f;
