@@ -7,7 +7,7 @@
         <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Homicidal</workerClass>
         <label>homicidal rampage</label>
         <description>This person has completely snapped and is on a homicidal rampage. Depending on their traits, they will either hunt down the person they hate the most, or randomly slaughter anyone who is lightly armored.</description>
-        <category>Extreme</category>
+        <category>Aggro</category>
         <nameColor>(255,50,50)</nameColor>
         <beginLetter>{0} has snapped and is on a homicidal rampage!</beginLetter>
         <beginLetterDef>ThreatSmall</beginLetterDef>

@@ -23,6 +23,10 @@ namespace RimSynapse.Psychology
             // Register with Core
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
             
+            // Register opportunistic background tasks
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticJournal", API.SynapsePsychology.TriggerOpportunisticJournal, 30000); // Max 2 a day
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_VisitorBackstory", API.SynapsePsychology.TriggerOpportunisticVisitorBackstory, 15000); // 4 a day max
+            
             Log.Message("[RimSynapse-Psychology] Mod initialized.");
         }
 

@@ -295,5 +295,110 @@ Recent Journal Entries:
                 }
             );
         }
+
+        /// <summary>
+        /// Triggered by the Core framework when the LLM queue is idle.
+        /// Generates a low-priority background journal entry for a random colonist.
+        /// </summary>
+        public static void TriggerOpportunisticJournal()
+        {
+            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return;
+
+            // Pick a random colonist
+            var pawn = Find.CurrentMap.mapPawns.FreeColonists.RandomElementWithFallback();
+            if (pawn == null) return;
+
+            var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            if (coreComp == null) return;
+
+            string systemPrompt = @"You are a colonist in the RimWorld universe writing in your personal journal.
+Take a moment to reflect on your current situation, your surroundings, or your thoughts about the colony.
+Write a very short (2-3 sentences) journal entry. Write in the first person ('I', 'me').";
+
+            string userMessage = $"Your Name: {pawn.Name.ToStringShort}\nCurrent Mood: {pawn.needs?.mood?.CurLevelPercentage:P0}";
+
+            // Use priority -1 so it stays at the absolute bottom of the queue and yields to real events
+            var options = new ChatOptions { priority = -1 };
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result => 
+                {
+                    if (result.success)
+                    {
+                        AddMemory(pawn, new WeightedMemory
+                        {
+                            summary = result.content.Trim(),
+                            weight = 0.5f,
+                            memoryType = "OpportunisticReflection"
+                        });
+                        Log.Message($"[RimSynapse-Psychology] Opportunistic journal entry generated for {pawn.Name.ToStringShort}.");
+                    }
+                },
+                options
+            );
+        }
+
+        /// <summary>
+        /// Triggered by the Core framework when the LLM queue is idle.
+        /// Generates a low-priority background backstory for an important non-colonist (visitor/raider/prisoner).
+        /// </summary>
+        public static void TriggerOpportunisticVisitorBackstory()
+        {
+            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return;
+
+            // Find an important non-colonist who doesn't have a backstory yet
+            var targetPawn = Find.CurrentMap.mapPawns.AllPawnsSpawned
+                .Where(p => p.RaceProps.Humanlike && !p.IsColonist && IsImportantPawn(p) && NeedsBackstory(p))
+                .RandomElementWithFallback();
+
+            if (targetPawn == null) return;
+
+            var coreComp = targetPawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            if (coreComp == null) return;
+
+            string factionName = targetPawn.Faction?.Name ?? "Outlander";
+            string title = targetPawn.royalty?.MostSeniorTitle?.def?.label ?? "Wanderer";
+
+            string systemPrompt = $@"You are {targetPawn.Name.ToStringShort}, a {title} from {factionName} in the RimWorld universe.
+Write a very short (2-3 sentences) autobiographical backstory about your past. Write in the first person ('I', 'me').";
+
+            string userMessage = $"Generate my backstory. I am currently at {Find.CurrentMap.Parent.Label}.";
+
+            // Use priority -1 so it stays at the bottom of the queue
+            var options = new ChatOptions { priority = -1 };
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result => 
+                {
+                    if (result.success)
+                    {
+                        AddMemory(targetPawn, new WeightedMemory
+                        {
+                            summary = result.content.Trim(),
+                            weight = 0.8f,
+                            memoryType = "Backstory"
+                        });
+                        MarkBackstoryCreated(targetPawn);
+                        Log.Message($"[RimSynapse-Psychology] Opportunistic visitor backstory generated for {targetPawn.Name.ToStringShort} (Important Pawn).");
+                    }
+                },
+                options
+            );
+        }
+
+        private static bool IsImportantPawn(Pawn p)
+        {
+            if (p.Faction != null && p.Faction.leader == p) return true;
+            if (p.IsPrisonerOfColony) return true;
+            if (p.royalty != null && p.royalty.AllTitlesForReading.Any()) return true;
+            if (p.relations != null && p.relations.FamilyByBlood.Any(r => r.Faction == Faction.OfPlayer || r.IsPrisonerOfColony)) return true;
+            return false;
+        }
     }
 }
