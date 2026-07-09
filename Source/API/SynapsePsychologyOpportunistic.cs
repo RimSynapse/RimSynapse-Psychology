@@ -19,16 +19,16 @@ namespace RimSynapse.Psychology.API
         /// Triggered by the Core framework when the LLM queue is idle.
         /// Generates a low-priority background memory for 1-3 colonists based on the oldest PastEvent.
         /// </summary>
-        public static void TriggerOpportunisticMemory()
+        public static bool TriggerOpportunisticMemory()
         {
-            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return;
+            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return false;
 
             var coreComp = Find.World.GetComponent<SynapseCoreWorldComponent>();
-            if (coreComp == null || !coreComp.TryDequeuePastEvent(out PastEvent pastEvent)) return;
+            if (coreComp == null || !coreComp.TryDequeuePastEvent(out PastEvent pastEvent)) return false;
 
             // Pick up to 3 colonists to generate memories for
             var pawns = Find.CurrentMap.mapPawns.FreeColonists.OrderBy(_ => Rand.Value).Take(3).ToList();
-            if (pawns.Count == 0) return;
+            if (pawns.Count == 0) return false;
 
             string systemPrompt = @"You are the internal monologues of the specified RimWorld colonists.
 A significant event just occurred. Write a very short (1-2 sentences) personal memory/journal entry for EACH colonist about this event.
@@ -125,24 +125,25 @@ You MUST respond strictly in valid JSON format:
                 },
                 options
             );
+            return true;
         }
 
         /// <summary>
         /// Triggered by the Core framework when the LLM queue is idle.
         /// Generates a low-priority background backstory for an important non-colonist.
         /// </summary>
-        public static void TriggerOpportunisticVisitorBackstory()
+        public static bool TriggerOpportunisticVisitorBackstory()
         {
-            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return;
+            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return false;
 
             var targetPawn = Find.CurrentMap.mapPawns.AllPawnsSpawned
                 .Where(p => p.RaceProps.Humanlike && !p.IsColonist && IsImportantPawn(p) && NeedsBackstory(p))
                 .RandomElementWithFallback();
 
-            if (targetPawn == null) return;
+            if (targetPawn == null) return false;
 
             var coreComp = targetPawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
-            if (coreComp == null) return;
+            if (coreComp == null) return false;
 
             string factionName = targetPawn.Faction?.Name ?? "Outlander";
             string title = targetPawn.royalty?.MostSeniorTitle?.def?.label ?? "Wanderer";
@@ -174,15 +175,16 @@ Write a very short (2-3 sentences) autobiographical backstory about your past. W
                 },
                 options
             );
+            return true;
         }
 
         /// <summary>
         /// Triggered by the Core framework when the LLM queue is idle.
         /// Scans for a colonist who is flagged for a daily journal update and evaluates their profile.
         /// </summary>
-        public static void TriggerOpportunisticProfileEvaluation()
+        public static bool TriggerOpportunisticProfileEvaluation()
         {
-            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return;
+            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return false;
 
             // Find a colonist awaiting a journal update
             var targetPawn = Find.CurrentMap.mapPawns.FreeColonists
@@ -192,12 +194,12 @@ Write a very short (2-3 sentences) autobiographical backstory about your past. W
                 })
                 .RandomElementWithFallback();
 
-            if (targetPawn == null) return;
+            if (targetPawn == null) return false;
 
             var pawnComp = targetPawn.TryGetComp<SynapsePawnComp>();
             var coreComp = targetPawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             
-            if (pawnComp == null || coreComp == null) return;
+            if (pawnComp == null || coreComp == null) return false;
 
             var memories = coreComp.memories;
             float averageMood = pawnComp.savedAverageMood;
@@ -223,6 +225,8 @@ Write a very short (2-3 sentences) autobiographical backstory about your past. W
                     pawnComp.isAwaitingJournalUpdate = true;
                 }
             }, true); // true = isOpportunistic
+            
+            return true;
         }
 
         private static bool IsImportantPawn(Pawn p)

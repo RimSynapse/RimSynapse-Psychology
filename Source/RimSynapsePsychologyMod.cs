@@ -25,7 +25,7 @@ namespace RimSynapse.Psychology
             
             // Register opportunistic background tasks with scheduling metadata
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory",
-                API.SynapsePsychology.TriggerOpportunisticMemory,
+                (System.Func<bool>)API.SynapsePsychology.TriggerOpportunisticMemory,
                 new RimSynapse.Internal.OpportunisticTaskConfig
                 {
                     Label = "Memory Generation",
@@ -35,7 +35,7 @@ namespace RimSynapse.Psychology
                     CooldownTicks = 15000
                 });
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_VisitorBackstory",
-                API.SynapsePsychology.TriggerOpportunisticVisitorBackstory,
+                (System.Func<bool>)API.SynapsePsychology.TriggerOpportunisticVisitorBackstory,
                 new RimSynapse.Internal.OpportunisticTaskConfig
                 {
                     Label = "Visitor Backstory",
@@ -46,7 +46,7 @@ namespace RimSynapse.Psychology
                 });
             
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_ProfileEvaluation",
-                API.SynapsePsychology.TriggerOpportunisticProfileEvaluation,
+                (System.Func<bool>)API.SynapsePsychology.TriggerOpportunisticProfileEvaluation,
                 new RimSynapse.Internal.OpportunisticTaskConfig
                 {
                     Label = "Clinical Evaluation",
