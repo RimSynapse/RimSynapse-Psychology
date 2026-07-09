@@ -303,6 +303,7 @@ You MUST respond strictly in valid JSON format:
         /// Scans all world faction leaders for backstory generation.
         /// These are "World VIPs" — they get backstories regardless of whether they're on a map.
         /// If a leader dies or loses leadership, the new leader will get queued next cycle.
+        /// If StoryTeller has already generated a faction history, it's included as context.
         /// </summary>
         public static bool TriggerLeaderBackstoryGeneration()
         {
@@ -341,6 +342,47 @@ You MUST respond strictly in valid JSON format:
                 ? string.Join(", ", targetLeader.story.traits.allTraits.Select(t => t.LabelCap))
                 : "None";
 
+            // Check if StoryTeller has generated a faction history to use as context
+            string factionHistoryContext = "";
+            if (SynapseCore.IsModLoaded("RimSynapseStoryTeller") && targetLeader.Faction != null)
+            {
+                // Access faction history via the core comp's world data without direct StoryTeller type dependency
+                // We use reflection-free approach: check SynapseCoreWorldComponent's faction tracker for any history data
+                // Actually, StoryTeller stores this in its own WorldComponent. We can safely check via Find.World.
+                try
+                {
+                    foreach (var comp in Find.World.components)
+                    {
+                        // Check by type name to avoid hard dependency on StoryTeller assembly
+                        if (comp.GetType().Name == "SynapseStoryTellerWorldComponent")
+                        {
+                            var method = comp.GetType().GetMethod("GetOrCreateStoryTracker");
+                            if (method != null)
+                            {
+                                var tracker = method.Invoke(comp, new object[] { targetLeader.Faction.GetUniqueLoadID() });
+                                if (tracker != null)
+                                {
+                                    var historyField = tracker.GetType().GetField("factionHistory");
+                                    if (historyField != null)
+                                    {
+                                        string history = historyField.GetValue(tracker) as string;
+                                        if (!string.IsNullOrEmpty(history))
+                                        {
+                                            factionHistoryContext = $"\n\nFaction History (already established):\n\"{history}\"\nYour life events should be consistent with this faction history.";
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[RimSynapse-Psychology] Could not read faction history from StoryTeller: {ex.Message}");
+                }
+            }
+
             string systemPrompt = $@"You are {targetLeader.Name.ToStringShort}, the {title} of {factionName} (a {factionType}) in the RimWorld universe.
 Your traits are: {traits}.
 You must generate a detailed life history consisting of exactly 3 or 4 significant life events.
@@ -348,7 +390,7 @@ These events MUST include:
 1. 'Faction Join' (or birth into the faction).
 2. 'Faction Rise' (how you gained influence).
 3. 'Faction Control' (how you took leadership).
-(Optional) 4. A flavor memory that adds personality.
+(Optional) 4. A flavor memory that adds personality.{factionHistoryContext}
 
 You MUST respond strictly in valid JSON format:
 {{
@@ -362,7 +404,7 @@ You MUST respond strictly in valid JSON format:
 }}";
 
             string userMessage = $"Generate my backstory as faction leader of {factionName}.";
-            var options = new ChatOptions { priority = 7 }; // High priority — Storyteller depends on this
+            var options = new ChatOptions { priority = 4 }; // Below colonist tasks, below faction history
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,

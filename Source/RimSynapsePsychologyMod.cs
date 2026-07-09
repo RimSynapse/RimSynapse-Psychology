@@ -61,9 +61,9 @@ namespace RimSynapse.Psychology
                 new RimSynapse.Internal.OpportunisticTaskConfig
                 {
                     Label = "Leader Backstory",
-                    Description = "Generates AI backstories for all faction leaders (World VIPs). Required before StoryTeller can generate faction histories.",
-                    Priority = 7, // High priority — Storyteller depends on these existing
-                    Weight = 2.0f,
+                    Description = "Generates AI backstories for all faction leaders (World VIPs). Runs after faction history to use it as context.",
+                    Priority = 4, // Below colonist tasks (8, 5) and faction history (6)
+                    Weight = 1.5f,
                     CooldownTicks = 5000 // Short cooldown — iterate through leaders quickly
                 });
             
