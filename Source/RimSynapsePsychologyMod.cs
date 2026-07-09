@@ -65,13 +65,11 @@ namespace RimSynapse.Psychology
             listingStandard.Begin(inRect);
             
             listingStandard.Label("Note: Debug logging is now globally configured in RimSynapse Core settings.");
-            
+            // ── Mechanics ───────────────────────────────────────────
+            listingStandard.Label("Mechanics");
             listingStandard.GapLine();
-            listingStandard.Label("Content Settings");
-            listingStandard.CheckboxLabeled("Enable Suicidal Mental Breaks", ref Settings.enableSuicidalBehaviors, "Warning: Sensitive Content. Disabling this completely removes suicidal behaviors from the mod.");
 
-            listingStandard.GapLine();
-            listingStandard.Label($"Memory Decay Rate Multiplier: {Settings.memoryDecayMultiplier:F2}x");
+            listingStandard.Label($"Memory Decay Speed: {Settings.memoryDecayMultiplier:F1}x", tooltip: "How fast colonists forget past events. Higher means they let go of grudges and trauma faster.");
             Settings.memoryDecayMultiplier = listingStandard.Slider(Settings.memoryDecayMultiplier, 0.1f, 5.0f);
             
             listingStandard.Label($"Sensitivity Minimum Burden Threshold: {Settings.sensitivityThreshold:F1}");
