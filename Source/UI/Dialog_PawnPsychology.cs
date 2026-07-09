@@ -14,7 +14,7 @@ namespace RimSynapse.Psychology.UI
         {
             Profile,
             Backstory,
-            Journal
+            Memories
         }
 
         private Pawn pawn;
@@ -22,11 +22,10 @@ namespace RimSynapse.Psychology.UI
         private PsychologyTab currentTab = PsychologyTab.Profile;
         
         private Vector2 backstoryScrollPosition = Vector2.zero;
-        private Vector2 journalScrollPosition = Vector2.zero;
+        private Vector2 memoriesScrollPosition = Vector2.zero;
         private Vector2 profileScrollPosition = Vector2.zero;
         
         public override Vector2 InitialSize => new Vector2(650f, 750f);
-        protected override float Margin => 0f;
 
         public Dialog_PawnPsychology(Pawn pawn)
         {
@@ -34,6 +33,7 @@ namespace RimSynapse.Psychology.UI
             this.coreComp = pawn.TryGetComp<SynapseCorePawnComp>();
             this.forcePause = false;
             this.doCloseX = true;
+            this.draggable = true;
             this.closeOnClickedOutside = true;
             this.absorbInputAroundWindow = false;
         }
@@ -57,7 +57,7 @@ namespace RimSynapse.Psychology.UI
             {
                 new TabRecord("Profile", () => currentTab = PsychologyTab.Profile, currentTab == PsychologyTab.Profile),
                 new TabRecord("Backstory", () => currentTab = PsychologyTab.Backstory, currentTab == PsychologyTab.Backstory),
-                new TabRecord("Journal", () => currentTab = PsychologyTab.Journal, currentTab == PsychologyTab.Journal)
+                new TabRecord("Memories", () => currentTab = PsychologyTab.Memories, currentTab == PsychologyTab.Memories)
             };
             
             TabDrawer.DrawTabs(tabRect, tabs, 200f);
@@ -73,8 +73,8 @@ namespace RimSynapse.Psychology.UI
                 case PsychologyTab.Backstory:
                     DrawBackstoryTab(contentRect);
                     break;
-                case PsychologyTab.Journal:
-                    DrawJournalTab(contentRect);
+                case PsychologyTab.Memories:
+                    DrawMemoriesTab(contentRect);
                     break;
             }
         }
@@ -165,7 +165,7 @@ namespace RimSynapse.Psychology.UI
             Widgets.EndScrollView();
         }
 
-        private void DrawJournalTab(Rect rect)
+        private void DrawMemoriesTab(Rect rect)
         {
             if (coreComp.memories.Count == 0)
             {
@@ -181,7 +181,7 @@ namespace RimSynapse.Psychology.UI
 
             Rect viewRect = new Rect(0f, 0f, rect.width - 20f, viewHeight);
             
-            Widgets.BeginScrollView(rect, ref journalScrollPosition, viewRect);
+            Widgets.BeginScrollView(rect, ref memoriesScrollPosition, viewRect);
             float currentEntryY = 0f;
             
             foreach (var memory in coreComp.memories.OrderByDescending(m => m.gameTick))

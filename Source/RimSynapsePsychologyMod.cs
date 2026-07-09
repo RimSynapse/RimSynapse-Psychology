@@ -24,7 +24,7 @@ namespace RimSynapse.Psychology
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
             
             // Register opportunistic background tasks
-            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticJournal", API.SynapsePsychology.TriggerOpportunisticJournal, 30000); // Max 2 a day
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory", API.SynapsePsychology.TriggerOpportunisticMemory, 30000); // Max 2 a day
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_VisitorBackstory", API.SynapsePsychology.TriggerOpportunisticVisitorBackstory, 15000); // 4 a day max
             
             Log.Message("[RimSynapse-Psychology] Mod initialized.");
@@ -40,6 +40,13 @@ namespace RimSynapse.Psychology
             listingStandard.GapLine();
             listingStandard.Label("Content Settings");
             listingStandard.CheckboxLabeled("Enable Suicidal Mental Breaks", ref Settings.enableSuicidalBehaviors, "Warning: Sensitive Content. Disabling this completely removes suicidal behaviors from the mod.");
+
+            listingStandard.GapLine();
+            listingStandard.Label($"Memory Decay Rate Multiplier: {Settings.memoryDecayMultiplier:F2}x");
+            Settings.memoryDecayMultiplier = listingStandard.Slider(Settings.memoryDecayMultiplier, 0.1f, 5.0f);
+            
+            listingStandard.Label($"Sensitivity Minimum Burden Threshold: {Settings.sensitivityThreshold:F1}");
+            Settings.sensitivityThreshold = listingStandard.Slider(Settings.sensitivityThreshold, 0.1f, 5.0f);
 
             listingStandard.End();
             base.DoSettingsWindowContents(inRect);

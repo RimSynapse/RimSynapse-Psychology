@@ -221,7 +221,7 @@ namespace RimSynapse.Psychology.API
             if (pawnComp == null || coreComp == null) return;
 
             string systemPrompt = @"You are a clinical psychologist in the RimWorld universe writing a formal medical evaluation.
-Based on this colonist's average mood today, their recent journal events, their survival skills, and the state of the colony, assess the following 8 categories (write 1-2 sentences each):
+Based on this colonist's average mood today, their recent memories, their survival skills, and the state of the colony, assess the following 8 categories (write 1-2 sentences each):
 - Relationships (How they feel about others)
 - Trauma (Recent pain or historical suffering)
 - ShapingEvents (Major life events, e.g., wedding, birth, deaths)
@@ -230,6 +230,8 @@ Based on this colonist's average mood today, their recent journal events, their 
 - Fulfillment (Whether their work aligns with their passions)
 - Arrogance (Ego related to their titles or skills)
 - Dedication (Are they discontent? Likely to rebel or leave?)
+
+You MUST analyze the 'Tags' attached to their recent memories. If you see recurring themes (e.g. 'Food', 'Starving', 'Safety'), you must explicitly address this growing concern in their Satisfaction or Dedication assessment.
 
 You must also provide an 'AbandonmentRiskScore' (0-100) representing how likely they are to permanently abandon the colony (or rebel if a slave). High survival skills and low satisfaction increase this risk.
 
@@ -247,14 +249,21 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
 }";
 
             string recentEvents = dailyEvents == null || dailyEvents.Count == 0 
-                ? "No significant events today." 
-                : string.Join("\n", dailyEvents.Select(e => $"- {e.summary}"));
+                ? "No significant memories today." 
+                : string.Join("\n", dailyEvents.Select(e => $"- {e.summary} [Tags: {string.Join(", ", e.tags)}]"));
+
+            float threshold = RimSynapsePsychologyMod.Settings != null ? RimSynapsePsychologyMod.Settings.sensitivityThreshold : 0.5f;
+            string lifetimeBurdens = coreComp.GetTopMemoryBurdens(5, threshold);
 
             int colonySize = pawn.Map?.mapPawns?.FreeColonistsCount ?? 1;
             int melee = pawn.skills?.GetSkill(SkillDefOf.Melee)?.Level ?? 0;
             int shooting = pawn.skills?.GetSkill(SkillDefOf.Shooting)?.Level ?? 0;
             int cooking = pawn.skills?.GetSkill(SkillDefOf.Cooking)?.Level ?? 0;
             int medicine = pawn.skills?.GetSkill(SkillDefOf.Medicine)?.Level ?? 0;
+            
+            int lifetimeKills = pawn.records?.GetAsInt(RecordDefOf.KillsHumanlikes) ?? 0;
+            float damageTaken = pawn.records?.GetValue(RecordDefOf.DamageTaken) ?? 0f;
+            float timeAsColonist = (pawn.records?.GetValue(RecordDefOf.TimeAsColonistOrColonyAnimal) ?? 0f) / 60000f; // in days
 
             string statusText = pawn.IsColonist ? "Colonist" : (pawn.IsPrisoner ? "Prisoner" : (pawn.IsSlave ? "Slave" : "Guest"));
             NeedDef suppressionDef = DefDatabase<NeedDef>.GetNamedSilentFail("Suppression");
@@ -263,9 +272,11 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
             string userMessage = $@"Patient Name: {pawn.Name.ToStringShort}
 Status: {statusText}
 Colony Size: {colonySize}
-Survival Skills: Melee {melee}, Shooting {shooting}, Cooking {cooking}, Medicine {medicine}
+Time as Colonist: {timeAsColonist:F1} days
+Survival Stats: Melee {melee}, Shooting {shooting}, Medicine {medicine}, Lifetime Human Kills: {lifetimeKills}, Damage Taken: {damageTaken:F0}
 Average Mood Today: {averageMood:F2}{suppression}
-Recent Journal Entries:
+Psychological Burdens (Sensitivity): {lifetimeBurdens}
+Recent Memories:
 {recentEvents}";
 
             SynapseClient.PromptAsync(
@@ -333,24 +344,56 @@ Recent Journal Entries:
 
         /// <summary>
         /// Triggered by the Core framework when the LLM queue is idle.
-        /// Generates a low-priority background journal entry for a random colonist.
+        /// Generates a low-priority background memory for 1-3 colonists based on the oldest PastEvent.
         /// </summary>
-        public static void TriggerOpportunisticJournal()
+        public static void TriggerOpportunisticMemory()
         {
             if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return;
 
-            // Pick a random colonist
-            var pawn = Find.CurrentMap.mapPawns.FreeColonists.RandomElementWithFallback();
-            if (pawn == null) return;
+            var coreComp = Find.World.GetComponent<SynapseCoreWorldComponent>();
+            if (coreComp == null || !coreComp.TryDequeuePastEvent(out PastEvent pastEvent)) return;
 
-            var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
-            if (coreComp == null) return;
+            // Pick up to 3 colonists to generate memories for
+            var pawns = Find.CurrentMap.mapPawns.FreeColonists.OrderBy(_ => Rand.Value).Take(3).ToList();
+            if (pawns.Count == 0) return;
 
-            string systemPrompt = @"You are a colonist in the RimWorld universe writing in your personal journal.
-Take a moment to reflect on your current situation, your surroundings, or your thoughts about the colony.
-Write a very short (2-3 sentences) journal entry. Write in the first person ('I', 'me').";
+            string systemPrompt = @"You are the internal monologues of the specified RimWorld colonists.
+A significant event just occurred. Write a very short (1-2 sentences) personal memory/journal entry for EACH colonist about this event.
+You must also provide a list of 1-3 single-word tags (keywords) for each memory (e.g. 'Food', 'Combat', 'Resentment', 'Safety').
+And assign a memory weight (0.1 to 5.0) and decay rate (0.01 to 0.5) based on how traumatic/important it was.
 
-            string userMessage = $"Your Name: {pawn.Name.ToStringShort}\nCurrent Mood: {pawn.needs?.mood?.CurLevelPercentage:P0}";
+CRITICAL INSTRUCTION FOR DEFINING MEMORIES: 
+Desensitization matters. Look at their lifetime statistics. If they have 25 kills, another kill isn't traumatic. If it's their first, it is life-altering.
+If this event is life-altering (e.g., first kill, death of a close friend, marriage, creating a legendary artifact), you MUST set the `Decay` value strictly to `0.0` so it never fades. Defining memories do not decay.
+
+You MUST respond strictly in valid JSON format:
+{
+  ""Memories"": [
+    {
+      ""PawnId"": ""ThingID_Here"",
+      ""Summary"": ""I was starving, and we just gave our food to beggars..."",
+      ""Tags"": [""Food"", ""Resentment""],
+      ""Weight"": 1.5,
+      ""Decay"": 0.05
+    }
+  ]
+}";
+
+            string userMessage = $"Event: {pastEvent.eventDescription}\nColony Status at the time: {pastEvent.colonySnapshot}\n\nTarget Pawns:\n";
+            foreach (var pawn in pawns)
+            {
+                var pCoreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+                float threshold = RimSynapsePsychologyMod.Settings != null ? RimSynapsePsychologyMod.Settings.sensitivityThreshold : 0.5f;
+                string lifetimeBurdens = pCoreComp != null ? pCoreComp.GetTopMemoryBurdens(3, threshold) : "None";
+                
+                int lifetimeKills = pawn.records?.GetAsInt(RecordDefOf.KillsHumanlikes) ?? 0;
+                
+                string snapshot = pastEvent.pawnSnapshots != null && pastEvent.pawnSnapshots.ContainsKey(pawn.ThingID) 
+                    ? pastEvent.pawnSnapshots[pawn.ThingID] 
+                    : "Unknown";
+                    
+                userMessage += $"- Name: {pawn.Name.ToStringShort}, ID: {pawn.ThingID}\n  Status at the time: {snapshot}\n  Lifetime Kills: {lifetimeKills}\n  Current Psychological Burdens: {lifetimeBurdens}\n\n";
+            }
 
             // Use priority -1 so it stays at the absolute bottom of the queue and yields to real events
             var options = new ChatOptions { priority = -1 };
@@ -363,13 +406,48 @@ Write a very short (2-3 sentences) journal entry. Write in the first person ('I'
                 {
                     if (result.success)
                     {
-                        AddMemory(pawn, new WeightedMemory
+                        try
                         {
-                            summary = result.content.Trim(),
-                            weight = 0.5f,
-                            memoryType = "OpportunisticReflection"
-                        });
-                        Log.Message($"[RimSynapse-Psychology] Opportunistic journal entry generated for {pawn.Name.ToStringShort}.");
+                            string json = result.content.Trim();
+                            if (json.StartsWith("```json")) json = json.Substring(7);
+                            if (json.StartsWith("```")) json = json.Substring(3);
+                            if (json.EndsWith("```")) json = json.Substring(0, json.Length - 3);
+                            json = json.Trim();
+
+                            var parsed = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, object>>>>(json);
+                            if (parsed != null && parsed.ContainsKey("Memories"))
+                            {
+                                foreach (var memDict in parsed["Memories"])
+                                {
+                                    string pawnId = memDict["PawnId"].ToString();
+                                    Pawn targetPawn = pawns.FirstOrDefault(p => p.ThingID == pawnId);
+                                    if (targetPawn != null)
+                                    {
+                                        var tagsList = new List<string>();
+                                        if (memDict.ContainsKey("Tags") && memDict["Tags"] is Newtonsoft.Json.Linq.JArray arr)
+                                        {
+                                            tagsList = arr.Select(t => t.ToString()).ToList();
+                                        }
+
+                                        AddMemory(targetPawn, new WeightedMemory
+                                        {
+                                            summary = memDict["Summary"].ToString(),
+                                            weight = Convert.ToSingle(memDict["Weight"]),
+                                            baseWeight = Convert.ToSingle(memDict["Weight"]),
+                                            decayRate = Convert.ToSingle(memDict["Decay"]) * RimSynapsePsychologyMod.Settings.memoryDecayMultiplier,
+                                            tags = tagsList,
+                                            memoryType = "EventReflection",
+                                            gameTick = pastEvent.gameTick
+                                        });
+                                    }
+                                }
+                                Log.Message($"[RimSynapse-Psychology] Opportunistic memories generated for {pastEvent.eventDescription}.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning($"[RimSynapse-Psychology] Failed to parse JSON memories: {ex.Message}\nContent: {result.content}");
+                        }
                     }
                 },
                 options
