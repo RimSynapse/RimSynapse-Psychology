@@ -19,7 +19,7 @@ namespace RimSynapse.Psychology.API
         /// Triggered when the pawn goes to sleep. Queues their daily events and average mood
         /// for LLM processing to update long-term context modifiers and break severity.
         /// </summary>
-        public static void QueueDailyPsychologyReview(Pawn pawn, float averageMood, System.Collections.Generic.List<RimSynapse.Models.WeightedMemory> dailyEvents, Action<bool> onComplete = null)
+        public static void QueueDailyPsychologyReview(Pawn pawn, float averageMood, System.Collections.Generic.List<RimSynapse.Models.WeightedMemory> dailyEvents, Action<bool> onComplete = null, bool isOpportunistic = false)
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -86,6 +86,8 @@ Psychological Burdens (Sensitivity): {lifetimeBurdens}
 Recent Memories:
 {recentEvents}";
 
+            var options = new ChatOptions { priority = isOpportunistic ? -1 : 0 };
+
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
                 systemPrompt,
@@ -145,7 +147,8 @@ Recent Memories:
                     }
                     sw.Stop();
                     RimSynapse.Utils.SynapseFileLogger.LogMetric("Psychology", pawn, "QueueDailyPsychologyReview", sw.ElapsedMilliseconds);
-                }
+                },
+                options
             );
         }
     }

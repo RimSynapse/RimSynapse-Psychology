@@ -54,7 +54,8 @@ namespace RimSynapse.Psychology.Comps
         public int lastExtremeNegativeTick = -1;
         
         public int lastJournalUpdateDay = -1;
-        private bool isAwaitingJournalUpdate = false;
+        public bool isAwaitingJournalUpdate = false;
+        public float savedAverageMood = 0.5f;
 
         private const int TickIntervalDay = 60000;
         private const int TickInterval6Hours = 15000;
@@ -77,6 +78,8 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref lastExtremeNegativeTick, "lastExtremeNegativeTick", -1);
             Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 2500);
             Scribe_Values.Look(ref lastJournalUpdateDay, "lastJournalUpdateDay", -1);
+            Scribe_Values.Look(ref isAwaitingJournalUpdate, "isAwaitingJournalUpdate", false);
+            Scribe_Values.Look(ref savedAverageMood, "savedAverageMood", 0.5f);
 
             Scribe_Collections.Look(ref medicalProfile, "medicalProfile", LookMode.Value, LookMode.Value);
             
@@ -119,25 +122,13 @@ namespace RimSynapse.Psychology.Comps
                         if ((isAsleep && !wasAsleep) || currentHour >= 22)
                         {
                             isAwaitingJournalUpdate = true;
-                            float averageMood = moodSamples > 0 ? (dailyMoodAccumulator / moodSamples) : pawn.needs.mood.CurLevelPercentage;
+                            savedAverageMood = moodSamples > 0 ? (dailyMoodAccumulator / moodSamples) : pawn.needs.mood.CurLevelPercentage;
                             
-                            RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "DailyReview", $"Triggered. Asleep: {isAsleep}, Hour: {currentHour}, Avg Mood: {averageMood:F2}");
+                            RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "DailyReview", $"Flagged for Opportunistic Review. Asleep: {isAsleep}, Hour: {currentHour}, Avg Mood: {savedAverageMood:F2}");
 
-                            // Route to API, passing memories from Core
-                            var coreComp = pawn.GetComp<RimSynapse.Comps.SynapseCorePawnComp>();
-                            var memories = coreComp != null ? coreComp.memories : new System.Collections.Generic.List<RimSynapse.Models.WeightedMemory>();
-                            
                             // Reset daily tracking immediately so we can start recording the next day
                             dailyMoodAccumulator = 0f;
                             moodSamples = 0;
-
-                            RimSynapse.Psychology.API.SynapsePsychology.QueueDailyPsychologyReview(pawn, averageMood, memories, (success) => {
-                                isAwaitingJournalUpdate = false;
-                                if (success)
-                                {
-                                    lastJournalUpdateDay = currentDay;
-                                }
-                            });
                         }
                         
                         wasAsleep = isAsleep;

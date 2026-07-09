@@ -67,7 +67,7 @@ namespace RimSynapse.Psychology.UI
                 fullName = pawn.Name.ToStringFull;
             }
 
-            Widgets.Label(headerRect, $"{fullName}'s Psychological Profile");
+            Widgets.Label(headerRect, fullName);
             Text.Anchor = TextAnchor.UpperLeft;
             Text.Font = GameFont.Small;
 
@@ -76,7 +76,7 @@ namespace RimSynapse.Psychology.UI
             
             List<TabRecord> tabs = new List<TabRecord>
             {
-                new TabRecord("Profile", () => currentTab = PsychologyTab.Profile, currentTab == PsychologyTab.Profile),
+                new TabRecord("Psychological Profile", () => currentTab = PsychologyTab.Profile, currentTab == PsychologyTab.Profile),
                 new TabRecord("Backstory", () => currentTab = PsychologyTab.Backstory, currentTab == PsychologyTab.Backstory),
                 new TabRecord("Memories", () => currentTab = PsychologyTab.Memories, currentTab == PsychologyTab.Memories)
             };

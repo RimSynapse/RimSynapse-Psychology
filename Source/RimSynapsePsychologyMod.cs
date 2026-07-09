@@ -45,6 +45,17 @@ namespace RimSynapse.Psychology
                     CooldownTicks = 10000
                 });
             
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_ProfileEvaluation",
+                API.SynapsePsychology.TriggerOpportunisticProfileEvaluation,
+                new RimSynapse.Internal.OpportunisticTaskConfig
+                {
+                    Label = "Clinical Evaluation",
+                    Description = "Evaluates the psychological profile of colonists in the background based on their daily mood and recent events.",
+                    Priority = 8, // High priority because this is core to the pawn's psychological state
+                    Weight = 1.5f,
+                    CooldownTicks = 5000 // Check frequently, since it only fires if a pawn is flagged
+                });
+            
             Log.Message("[RimSynapse-Psychology] Mod initialized.");
         }
 

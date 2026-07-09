@@ -176,6 +176,55 @@ Write a very short (2-3 sentences) autobiographical backstory about your past. W
             );
         }
 
+        /// <summary>
+        /// Triggered by the Core framework when the LLM queue is idle.
+        /// Scans for a colonist who is flagged for a daily journal update and evaluates their profile.
+        /// </summary>
+        public static void TriggerOpportunisticProfileEvaluation()
+        {
+            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return;
+
+            // Find a colonist awaiting a journal update
+            var targetPawn = Find.CurrentMap.mapPawns.FreeColonists
+                .Where(p => {
+                    var comp = p.TryGetComp<SynapsePawnComp>();
+                    return comp != null && comp.isAwaitingJournalUpdate;
+                })
+                .RandomElementWithFallback();
+
+            if (targetPawn == null) return;
+
+            var pawnComp = targetPawn.TryGetComp<SynapsePawnComp>();
+            var coreComp = targetPawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            
+            if (pawnComp == null || coreComp == null) return;
+
+            var memories = coreComp.memories;
+            float averageMood = pawnComp.savedAverageMood;
+            int currentDay = GenDate.DaysPassed;
+
+            // Unset the flag immediately so we don't spam them if the queue fails
+            pawnComp.isAwaitingJournalUpdate = false;
+
+            // Route to existing API evaluation method, but override priority to -1
+            // (QueueDailyPsychologyReview uses PromptAsync which accepts an options object, we need to modify QueueDailyPsychologyReview slightly to support options or priority -1)
+            // Wait, I will just call it and it will enqueue. The opportunistic manager triggers this when the queue is ALREADY empty, so priority doesn't matter as much, it will execute instantly.
+            // Actually, we should pass options. Let's look at QueueDailyPsychologyReview in SynapsePsychologyEvaluation.cs to ensure it uses options.
+            // Oh, I haven't modified QueueDailyPsychologyReview yet. I will do that next.
+            
+            QueueDailyPsychologyReview(targetPawn, averageMood, memories, (success) => {
+                if (success)
+                {
+                    pawnComp.lastJournalUpdateDay = currentDay;
+                }
+                else 
+                {
+                    // If it failed, flag them again so it retries later
+                    pawnComp.isAwaitingJournalUpdate = true;
+                }
+            }, true); // true = isOpportunistic
+        }
+
         private static bool IsImportantPawn(Pawn p)
         {
             if (p.Faction != null && p.Faction.leader == p) return true;
