@@ -23,9 +23,9 @@ namespace RimSynapse.Psychology
             // Register with Core
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
             
-            // Register opportunistic background tasks
-            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory", API.SynapsePsychology.TriggerOpportunisticMemory, 30000); // Max 2 a day
-            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_VisitorBackstory", API.SynapsePsychology.TriggerOpportunisticVisitorBackstory, 15000); // 4 a day max
+            // Register opportunistic background tasks (priority/cooldown defined in Defs/OpportunisticTasks/Psychology_Tasks.xml)
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory", API.SynapsePsychology.TriggerOpportunisticMemory);
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_VisitorBackstory", API.SynapsePsychology.TriggerOpportunisticVisitorBackstory);
             
             Log.Message("[RimSynapse-Psychology] Mod initialized.");
         }
