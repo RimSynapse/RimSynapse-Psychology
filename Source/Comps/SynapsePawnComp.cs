@@ -49,6 +49,9 @@ namespace RimSynapse.Psychology.Comps
         private int moodSamples = 0;
         
         public int lastExtremeNegativeTick = -1;
+        
+        public int lastJournalUpdateDay = -1;
+        private bool isAwaitingJournalUpdate = false;
 
         private const int TickIntervalDay = 60000;
         private const int TickInterval6Hours = 15000;
@@ -70,6 +73,7 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref wasAsleep, "wasAsleep", false);
             Scribe_Values.Look(ref lastExtremeNegativeTick, "lastExtremeNegativeTick", -1);
             Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 2500);
+            Scribe_Values.Look(ref lastJournalUpdateDay, "lastJournalUpdateDay", -1);
         }
 
         public override void CompTickRare()
@@ -79,13 +83,12 @@ namespace RimSynapse.Psychology.Comps
             if (parent is Pawn pawn && pawn.Spawned && !pawn.Dead)
             {
                 // Async Backstory Stub
-                if (!hasBackstoryMemory && pawn.Faction == Faction.OfPlayer)
+                if (!hasBackstoryMemory && pawn.Faction == Faction.OfPlayer && !isGeneratingBackstory)
                 {
                     ticksToGenerateBackstory -= 250;
                     if (ticksToGenerateBackstory <= 0)
                     {
-                        GenerateStubBackstory(pawn);
-                        hasBackstoryMemory = true;
+                        GenerateAIBackstory(pawn);
                     }
                 }
 
@@ -95,24 +98,40 @@ namespace RimSynapse.Psychology.Comps
                     dailyMoodAccumulator += pawn.needs.mood.CurLevelPercentage;
                     moodSamples++;
                     
-                    bool isAsleep = pawn.jobs != null && pawn.jobs.curDriver != null && pawn.jobs.curDriver.asleep;
-                    if (isAsleep && !wasAsleep)
+                    int currentDay = GenDate.DaysPassed;
+                    
+                    if (currentDay > lastJournalUpdateDay && !isAwaitingJournalUpdate)
                     {
-                        // Pawn just fell asleep. Trigger daily review.
-                        float averageMood = moodSamples > 0 ? (dailyMoodAccumulator / moodSamples) : pawn.needs.mood.CurLevelPercentage;
-                        
-                        RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "SleepReview", $"Average Mood: {averageMood:F2}");
+                        bool isAsleep = pawn.jobs != null && pawn.jobs.curDriver != null && pawn.jobs.curDriver.asleep;
+                        int currentHour = GenDate.HourOfDay(Find.TickManager.TicksAbs, Find.WorldGrid.LongLatOf(pawn.Map.Tile).x);
 
-                        // Route to API, passing memories from Core
-                        var coreComp = pawn.GetComp<RimSynapse.Comps.SynapseCorePawnComp>();
-                        var memories = coreComp != null ? coreComp.memories : new System.Collections.Generic.List<RimSynapse.Models.WeightedMemory>();
-                        RimSynapse.Psychology.API.SynapsePsychology.QueueDailyPsychologyReview(pawn, averageMood, memories);
+                        // Trigger if they just fell asleep OR if it's late (22:00) and they don't sleep
+                        if ((isAsleep && !wasAsleep) || currentHour >= 22)
+                        {
+                            isAwaitingJournalUpdate = true;
+                            float averageMood = moodSamples > 0 ? (dailyMoodAccumulator / moodSamples) : pawn.needs.mood.CurLevelPercentage;
+                            
+                            RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "DailyReview", $"Triggered. Asleep: {isAsleep}, Hour: {currentHour}, Avg Mood: {averageMood:F2}");
+
+                            // Route to API, passing memories from Core
+                            var coreComp = pawn.GetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+                            var memories = coreComp != null ? coreComp.memories : new System.Collections.Generic.List<RimSynapse.Models.WeightedMemory>();
+                            
+                            // Reset daily tracking immediately so we can start recording the next day
+                            dailyMoodAccumulator = 0f;
+                            moodSamples = 0;
+
+                            RimSynapse.Psychology.API.SynapsePsychology.QueueDailyPsychologyReview(pawn, averageMood, memories, (success) => {
+                                isAwaitingJournalUpdate = false;
+                                if (success)
+                                {
+                                    lastJournalUpdateDay = currentDay;
+                                }
+                            });
+                        }
                         
-                        // Reset daily tracking
-                        dailyMoodAccumulator = 0f;
-                        moodSamples = 0;
+                        wasAsleep = isAsleep;
                     }
-                    wasAsleep = isAsleep;
                 }
             }
         }
@@ -139,21 +158,138 @@ namespace RimSynapse.Psychology.Comps
             }
         }
 
-        private void GenerateStubBackstory(Pawn pawn)
+        private bool isGeneratingBackstory = false;
+
+        private void GenerateAIBackstory(Pawn pawn)
         {
             var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (coreComp == null) return;
 
-            coreComp.dynamicBackstory = $"{pawn.Name.ToStringShort} grew up in a harsh, unforgiving environment, learning early on that survival requires a pragmatic approach to morality. Despite their rugged exterior, they harbor a secret fascination with ancient literature and find solace in quiet moments studying the stars. This dichotomy of raw survivalism and quiet intellectualism defines their approach to life on the Rim.";
-            
-            coreComp.llmTraits.Clear();
-            coreComp.llmTraits.Add("INTJ");
-            coreComp.llmTraits.Add("Hypervigilant");
-            coreComp.llmTraits.Add("Pragmatic");
+            if (!SynapseClient.IsOnline)
+            {
+                // Wait and try again later
+                ticksToGenerateBackstory = 2500;
+                return;
+            }
 
-            string title = "Backstory Discovered";
-            string text = $"{pawn.Name.ToStringShort} has shared their backstory with you.\n\nOpen their Psychology tab to learn more about their past and personality traits.";
-            Find.LetterStack.ReceiveLetter(title, text, LetterDefOf.NeutralEvent, pawn);
+            isGeneratingBackstory = true;
+
+            string childhood = pawn.story.Childhood?.description ?? "Unknown childhood.";
+            string adulthood = pawn.story.Adulthood?.description ?? "Unknown adulthood.";
+            string traits = string.Join(", ", pawn.story.traits.allTraits.Select(t => t.Label));
+
+            string systemPrompt = @"You are a master storyteller in the RimWorld universe.
+Write a 300-500 word psychological profile for the colonist.
+Your task is to weave the provided childhood and adulthood backstories into a single, cohesive narrative.
+
+CRITICAL REQUIREMENTS:
+1. You MUST invent one specific, vivid memory (good or bad) from their childhood that explains their behavior.
+2. You MUST invent one specific, vivid memory (good or bad) from their adulthood that shaped who they are today.
+3. The story MUST be 300-500 words long.
+4. After the story, provide exactly 3 psychological archetype keywords (e.g., INTJ, Hypervigilant, Pragmatic).
+5. Finally, provide a 1-sentence journal entry from the pawn's perspective describing their first impression of arriving/surviving on this world.
+
+Format your response exactly like this:
+[STORY]
+(Your 300-500 word story here)
+[TRAITS]
+Keyword1, Keyword2, Keyword3
+[FIRST_IMPRESSION]
+(1 sentence journal entry here)";
+
+            string userMessage = $@"Colonist Name: {pawn.Name.ToStringShort}
+Childhood: {childhood}
+Adulthood: {adulthood}
+Current Traits: {traits}";
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result => OnBackstoryGenerated(result, pawn, coreComp)
+            );
+        }
+
+        private void OnBackstoryGenerated(ChatResult result, Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
+        {
+            isGeneratingBackstory = false;
+            
+            if (!result.success)
+            {
+                Log.Warning($"[RimSynapse-Psychology] Failed to generate backstory for {pawn.Name.ToStringShort}: {result.error}");
+                ticksToGenerateBackstory = 5000; // Try again in 5000 ticks
+                return;
+            }
+
+            string response = result.content;
+            
+            string story = "";
+            string traitString = "";
+            string firstImpression = "";
+
+            try
+            {
+                if (response.Contains("[STORY]") && response.Contains("[TRAITS]") && response.Contains("[FIRST_IMPRESSION]"))
+                {
+                    int storyIdx = response.IndexOf("[STORY]") + "[STORY]".Length;
+                    int traitsIdx = response.IndexOf("[TRAITS]");
+                    int impIdx = response.IndexOf("[FIRST_IMPRESSION]");
+                    
+                    story = response.Substring(storyIdx, traitsIdx - storyIdx).Trim();
+                    traitString = response.Substring(traitsIdx + "[TRAITS]".Length, impIdx - (traitsIdx + "[TRAITS]".Length)).Trim();
+                    firstImpression = response.Substring(impIdx + "[FIRST_IMPRESSION]".Length).Trim();
+                }
+                else if (response.Contains("[STORY]") && response.Contains("[TRAITS]"))
+                {
+                    int storyIdx = response.IndexOf("[STORY]") + "[STORY]".Length;
+                    int traitsIdx = response.IndexOf("[TRAITS]");
+                    
+                    story = response.Substring(storyIdx, traitsIdx - storyIdx).Trim();
+                    traitString = response.Substring(traitsIdx + "[TRAITS]".Length).Trim();
+                    firstImpression = "The Rim is a harsh place, but I will survive.";
+                }
+                else
+                {
+                    // Fallback parsing if LLM disobeys format
+                    story = response;
+                    traitString = "Complex, Unpredictable, Resilient";
+                    firstImpression = "The Rim is a harsh place, but I will survive.";
+                }
+
+                coreComp.dynamicBackstory = story;
+                
+                coreComp.llmTraits.Clear();
+                var traits = traitString.Split(new[] { ',', '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
+                foreach (var t in traits)
+                {
+                    string cleanedTrait = t.Trim();
+                    if (!string.IsNullOrEmpty(cleanedTrait))
+                    {
+                        coreComp.llmTraits.Add(cleanedTrait);
+                    }
+                }
+                
+                // Inject the first memory!
+                var memory = new RimSynapse.Models.WeightedMemory
+                {
+                    summary = firstImpression,
+                    weight = 1.0f,
+                    gameTick = Find.TickManager.TicksGame,
+                    tags = new List<string> { "Arrival" }
+                };
+                coreComp.memories.Add(memory);
+
+                hasBackstoryMemory = true;
+
+                string title = "Backstory Discovered";
+                string text = $"{pawn.Name.ToStringShort} has shared their backstory with you.\n\nOpen their Psychology tab to learn more about their past and personality traits.";
+                Find.LetterStack.ReceiveLetter(title, text, LetterDefOf.NeutralEvent, pawn);
+            }
+            catch (System.Exception ex)
+            {
+                Log.Error($"[RimSynapse-Psychology] Error parsing backstory for {pawn.Name.ToStringShort}: {ex.Message}");
+                ticksToGenerateBackstory = 5000;
+            }
         }
 
     }

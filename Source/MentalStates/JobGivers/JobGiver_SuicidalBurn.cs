@@ -9,87 +9,45 @@ namespace RimSynapse.Psychology.MentalStates
     {
         protected override Job TryGiveJob(Pawn pawn)
         {
-            // 1. If there is already a fire nearby, run into it!
+            // 1. Try to find the closest reachable fire
             var fires = pawn.Map.listerThings.ThingsOfDef(ThingDefOf.Fire)
-                .Where(f => f.Position.DistanceTo(pawn.Position) < 30f && pawn.CanReach(f, PathEndMode.Touch, Danger.Deadly))
+                .Where(f => pawn.CanReach(f, PathEndMode.Touch, Danger.Deadly))
                 .ToList();
-                
+
             if (fires.Count > 0)
             {
-                Thing biggestFire = fires.OrderByDescending(f => ((Fire)f).fireSize).FirstOrDefault();
-                if (biggestFire != null)
+                Thing closestFire = fires.OrderBy(f => pawn.Position.DistanceToSquared(f.Position)).FirstOrDefault();
+                if (closestFire != null)
                 {
-                    if (pawn.Position != biggestFire.Position)
+                    if (pawn.Position != closestFire.Position)
                     {
-                        Job gotoJob = JobMaker.MakeJob(JobDefOf.Goto, biggestFire.Position);
+                        // Run to the fire
+                        Job gotoJob = JobMaker.MakeJob(JobDefOf.Goto, closestFire.Position);
                         gotoJob.locomotionUrgency = LocomotionUrgency.Sprint;
                         return gotoJob;
                     }
                     else
                     {
-                        return null;
+                        // Stand in the fire!
+                        return JobMaker.MakeJob(JobDefOf.Wait_Wander);
                     }
                 }
             }
 
-            Room room = pawn.ownership?.OwnedRoom;
-            
-            if (room == null || room.TouchesMapEdge)
+            // 2. No fire? Find something combustible to ignite
+            Thing combustible = pawn.Map.listerThings.AllThings
+                .Where(t => t.FlammableNow && pawn.CanReach(t, PathEndMode.Touch, Danger.Deadly))
+                .OrderBy(t => pawn.Position.DistanceToSquared(t.Position))
+                .FirstOrDefault();
+
+            if (combustible != null)
             {
-                // Find a cluster of flammable outdoor things (like trees/grass)
-                for (int i = 0; i < 50; i++)
-                {
-                    IntVec3 c = CellFinder.RandomCell(pawn.Map);
-                    Room r = c.GetRoom(pawn.Map);
-                    if (r != null && !r.TouchesMapEdge && !r.IsHuge && r.CellCount < 50)
-                    {
-                        room = r;
-                        break;
-                    }
-                }
+                Job igniteJob = JobMaker.MakeJob(JobDefOf.Ignite, combustible);
+                return igniteJob;
             }
 
-            if (room != null && !room.TouchesMapEdge)
-            {
-                if (!room.ContainsCell(pawn.Position))
-                {
-                    return JobMaker.MakeJob(JobDefOf.Goto, room.Cells.RandomElement());
-                }
-                else
-                {
-                    var flammable = room.ContainedThings(ThingDefOf.WoodLog).FirstOrDefault() 
-                                    ?? room.ContainedAndAdjacentThings.FirstOrDefault(t => t.FlammableNow);
-                    
-                    if (flammable != null)
-                    {
-                        return JobMaker.MakeJob(JobDefOf.Ignite, flammable);
-                    }
-                }
-            }
-            else
-            {
-                // No room found, just find the nearest flammable thing outside and ignite it
-                Thing flammableThing = GenClosest.ClosestThingReachable(
-                    pawn.Position, pawn.Map, ThingRequest.ForGroup(ThingRequestGroup.HasGUIOverlay),
-                    PathEndMode.Touch, TraverseParms.For(pawn), 9999f,
-                    t => t.FlammableNow && !t.IsBurning());
-
-                // Or find a plant
-                if (flammableThing == null)
-                {
-                    flammableThing = GenClosest.ClosestThingReachable(
-                        pawn.Position, pawn.Map, ThingRequest.ForGroup(ThingRequestGroup.Plant),
-                        PathEndMode.Touch, TraverseParms.For(pawn), 9999f,
-                        t => t.FlammableNow && !t.IsBurning());
-                }
-
-                if (flammableThing != null)
-                {
-                    return JobMaker.MakeJob(JobDefOf.Ignite, flammableThing);
-                }
-            }
-
-            return null;
+            // 3. Fallback
+            return JobMaker.MakeJob(JobDefOf.Wait_Wander);
         }
     }
 }

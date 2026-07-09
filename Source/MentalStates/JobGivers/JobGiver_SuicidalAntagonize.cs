@@ -21,7 +21,7 @@ namespace RimSynapse.Psychology.MentalStates
                 return job;
             }
 
-            return JobMaker.MakeJob(JobDefOf.GotoWander, pawn.Position);
+            return JobMaker.MakeJob(JobDefOf.Wait_Wander);
         }
     }
 }

@@ -35,7 +35,18 @@
         <li Class="ThinkNode_ConditionalMentalState">
           <state>Synapse_SuicidalStarve</state>
           <subNodes>
-            <li Class="RimSynapse.Psychology.MentalStates.JobGiver_SuicidalStarve" />
+            <!-- Do NOT eat! But allow sleeping -->
+            <li Class="JobGiver_GetRest"/>
+            
+            <!-- Force them to do their normal work routine despite being in a mental state! -->
+            <li Class="ThinkNode_Subtree">
+              <treeDef>MainColonistBehaviorCore</treeDef>
+            </li>
+            
+            <!-- Fallback if they can't work or sleep, just wander aimlessly instead of breaking AI -->
+            <li Class="JobGiver_WanderAnywhere">
+              <maxDanger>Deadly</maxDanger>
+            </li>
           </subNodes>
         </li>
 

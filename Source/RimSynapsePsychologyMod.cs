@@ -12,12 +12,17 @@ namespace RimSynapse.Psychology
     public class RimSynapsePsychologyMod : Mod
     {
         public static RimSynapsePsychologySettings Settings;
+        public static SynapseModHandle ModHandle;
 
         public RimSynapsePsychologyMod(ModContentPack content) : base(content)
         {
             Settings = GetSettings<RimSynapsePsychologySettings>();
             var harmony = new Harmony("RimSynapse.Psychology");
             harmony.PatchAll();
+            
+            // Register with Core
+            ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
+            
             Log.Message("[RimSynapse-Psychology] Mod initialized.");
         }
 
@@ -27,6 +32,10 @@ namespace RimSynapse.Psychology
             listingStandard.Begin(inRect);
             
             listingStandard.Label("Note: Debug logging is now globally configured in RimSynapse Core settings.");
+            
+            listingStandard.GapLine();
+            listingStandard.Label("Content Settings");
+            listingStandard.CheckboxLabeled("Enable Suicidal Mental Breaks", ref Settings.enableSuicidalBehaviors, "Warning: Sensitive Content. Disabling this completely removes suicidal behaviors from the mod.");
 
             listingStandard.End();
             base.DoSettingsWindowContents(inRect);

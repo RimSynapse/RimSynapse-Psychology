@@ -34,7 +34,7 @@ namespace RimSynapse.Psychology.MentalStates
                     {
                         Log.Message($"[RimSynapse-Psychology] {pawn.Name} standing in fire.");
                         // Already in the fire!
-                        return null;
+                        return JobMaker.MakeJob(JobDefOf.Wait_Wander);
                     }
                 }
             }
@@ -76,7 +76,7 @@ namespace RimSynapse.Psychology.MentalStates
 
             Log.Message($"[RimSynapse-Psychology] {pawn.Name} couldn't find fire or animal, wandering wildly.");
             // 3. Fallback to just wandering wildly
-            return null;
+            return JobMaker.MakeJob(JobDefOf.Wait_Wander);
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
@@ -8,11 +9,22 @@ namespace RimSynapse.Psychology.UI
 {
     public class Dialog_PawnPsychology : Window
     {
+        private enum PsychologyTab
+        {
+            Profile,
+            Backstory,
+            Journal
+        }
+
         private Pawn pawn;
         private SynapseCorePawnComp coreComp;
-        private Vector2 scrollPosition = Vector2.zero;
+        private PsychologyTab currentTab = PsychologyTab.Profile;
         
-        public override Vector2 InitialSize => new Vector2(600f, 700f);
+        private Vector2 backstoryScrollPosition = Vector2.zero;
+        private Vector2 journalScrollPosition = Vector2.zero;
+        
+        public override Vector2 InitialSize => new Vector2(650f, 750f);
+        protected override float Margin => 0f;
 
         public Dialog_PawnPsychology(Pawn pawn)
         {
@@ -28,85 +40,136 @@ namespace RimSynapse.Psychology.UI
         {
             if (pawn == null || coreComp == null) return;
 
+            // Draw header area
+            Rect headerRect = new Rect(0f, 0f, inRect.width, 45f);
+            Widgets.DrawWindowBackground(headerRect);
+            
             Text.Font = GameFont.Medium;
-            Widgets.Label(new Rect(0f, 0f, inRect.width, 35f), $"{pawn.Name.ToStringShort}'s Psychological Profile");
+            Widgets.Label(headerRect, $"{pawn.Name.ToStringShort}'s Psychological Profile");
+            Text.Font = GameFont.Small;
+
+            // Setup Tab space
+            Rect tabRect = new Rect(0f, headerRect.yMax + 30f, inRect.width, inRect.height - headerRect.yMax - 30f);
+            
+            List<TabRecord> tabs = new List<TabRecord>
+            {
+                new TabRecord("Profile", () => currentTab = PsychologyTab.Profile, currentTab == PsychologyTab.Profile),
+                new TabRecord("Backstory", () => currentTab = PsychologyTab.Backstory, currentTab == PsychologyTab.Backstory),
+                new TabRecord("Journal", () => currentTab = PsychologyTab.Journal, currentTab == PsychologyTab.Journal)
+            };
+            
+            TabDrawer.DrawTabs(tabRect, tabs, 200f);
+
+            // Draw the inner content window
+            Rect contentRect = tabRect.ContractedBy(18f);
+            
+            switch (currentTab)
+            {
+                case PsychologyTab.Profile:
+                    DrawProfileTab(contentRect);
+                    break;
+                case PsychologyTab.Backstory:
+                    DrawBackstoryTab(contentRect);
+                    break;
+                case PsychologyTab.Journal:
+                    DrawJournalTab(contentRect);
+                    break;
+            }
+        }
+
+        private void DrawProfileTab(Rect rect)
+        {
+            float curY = rect.y;
+
+            // Draw Portrait
+            Rect portraitRect = new Rect(rect.x, curY, 150f, 150f);
+            GUI.DrawTexture(portraitRect, PortraitsCache.Get(pawn, new Vector2(150f, 150f), Rot4.South));
+            
+            // Draw Traits next to Portrait
+            Rect traitsHeaderRect = new Rect(portraitRect.xMax + 20f, curY + 10f, rect.width - portraitRect.width - 20f, 30f);
+            Text.Font = GameFont.Medium;
+            Widgets.Label(traitsHeaderRect, "Psychological Archetypes");
             Text.Font = GameFont.Small;
             
-            float curY = 40f;
-            
-            // --- TRAITS & ARCHETYPES ---
-            Rect traitsRect = new Rect(0f, curY, inRect.width, 30f);
+            Rect traitsRect = new Rect(portraitRect.xMax + 20f, traitsHeaderRect.yMax, traitsHeaderRect.width, 60f);
             string traitsLabel = coreComp.llmTraits.Any() 
                 ? string.Join(" • ", coreComp.llmTraits) 
-                : "No psychological traits identified yet.";
-            
+                : "Awaiting LLM psychological evaluation...";
             GUI.color = new Color(0.7f, 0.7f, 1f);
             Widgets.Label(traitsRect, traitsLabel);
             GUI.color = Color.white;
-            curY += 35f;
+            
+            curY = portraitRect.yMax + 30f;
+            
+            Widgets.DrawLineHorizontal(rect.x, curY, rect.width);
+            curY += 15f;
 
-            // --- BACKSTORY ---
+            // Draw Clinical Assessment
+            Text.Font = GameFont.Medium;
+            Widgets.Label(new Rect(rect.x, curY, rect.width, 30f), "Clinical Assessment");
+            Text.Font = GameFont.Small;
+            curY += 35f;
+            
+            string assessment = string.IsNullOrEmpty(coreComp.clinicalAssessment)
+                ? "No clinical assessment available. (Generates nightly while sleeping)."
+                : coreComp.clinicalAssessment;
+                
+            Rect assessmentRect = new Rect(rect.x, curY, rect.width, rect.yMax - curY);
+            Widgets.Label(assessmentRect, assessment);
+        }
+
+        private void DrawBackstoryTab(Rect rect)
+        {
             string backstory = string.IsNullOrEmpty(coreComp.dynamicBackstory) 
                 ? "The depths of this pawn's mind remain a mystery. More time is needed to form a psychological profile." 
                 : coreComp.dynamicBackstory;
 
-            Rect backstoryRect = new Rect(0f, curY, inRect.width, Text.CalcHeight(backstory, inRect.width));
-            Widgets.Label(backstoryRect, backstory);
-            curY += backstoryRect.height + 15f;
-
-            Widgets.DrawLineHorizontal(0f, curY, inRect.width);
-            curY += 15f;
-
-            // --- JOURNAL MEMORIES ---
-            Text.Font = GameFont.Medium;
-            Widgets.Label(new Rect(0f, curY, inRect.width, 30f), "Core Memories & Journal");
-            Text.Font = GameFont.Small;
-            curY += 35f;
-
-            Rect journalOutRect = new Rect(0f, curY, inRect.width, inRect.height - curY);
+            float textHeight = Text.CalcHeight(backstory, rect.width - 20f);
+            Rect viewRect = new Rect(0f, 0f, rect.width - 20f, textHeight);
             
+            Widgets.BeginScrollView(rect, ref backstoryScrollPosition, viewRect);
+            Widgets.Label(new Rect(0f, 0f, viewRect.width, viewRect.height), backstory);
+            Widgets.EndScrollView();
+        }
+
+        private void DrawJournalTab(Rect rect)
+        {
             if (coreComp.memories.Count == 0)
             {
-                Widgets.Label(journalOutRect, "No memories recorded yet.");
+                Widgets.Label(rect, "No memories recorded yet.");
                 return;
             }
 
-            // Calculate total height of the journal entries
             float viewHeight = 0f;
             foreach (var memory in coreComp.memories.OrderByDescending(m => m.gameTick))
             {
-                string text = memory.summary;
-                viewHeight += Text.CalcHeight(text, journalOutRect.width - 20f) + 30f; // Add space for date/tags
+                viewHeight += Text.CalcHeight(memory.summary, rect.width - 20f) + 30f;
             }
 
-            Rect journalViewRect = new Rect(0f, 0f, journalOutRect.width - 16f, viewHeight);
+            Rect viewRect = new Rect(0f, 0f, rect.width - 20f, viewHeight);
             
-            Widgets.BeginScrollView(journalOutRect, ref scrollPosition, journalViewRect);
+            Widgets.BeginScrollView(rect, ref journalScrollPosition, viewRect);
             float currentEntryY = 0f;
             
             foreach (var memory in coreComp.memories.OrderByDescending(m => m.gameTick))
             {
-                // Format Date
                 int ticks = memory.gameTick;
                 int day = GenDate.DayOfYear(ticks, Find.WorldGrid.LongLatOf(pawn.Map.Tile).x);
                 Quadrum quadrum = GenDate.Quadrum(ticks, Find.WorldGrid.LongLatOf(pawn.Map.Tile).x);
                 int year = GenDate.Year(ticks, Find.WorldGrid.LongLatOf(pawn.Map.Tile).x);
                 string dateStr = $"{day.ToString()} of {quadrum.Label()}, {year}";
 
-                // Format Tags
                 string tagsStr = memory.tags.Any() ? $"[{string.Join("] [", memory.tags)}]" : "[Misc]";
 
-                // Draw Date and Tags
-                Rect dateRect = new Rect(0f, currentEntryY, journalViewRect.width, 20f);
+                Rect dateRect = new Rect(0f, currentEntryY, viewRect.width, 20f);
                 GUI.color = Color.gray;
                 Widgets.Label(dateRect, $"{dateStr}   {tagsStr}");
                 GUI.color = Color.white;
                 currentEntryY += 20f;
 
-                // Draw Journal Text
-                float textHeight = Text.CalcHeight(memory.summary, journalViewRect.width);
-                Rect textRect = new Rect(0f, currentEntryY, journalViewRect.width, textHeight);
-                GUI.color = new Color(1f, 1f, 1f, 0.4f + (memory.weight * 0.6f)); // Dimmer if weight is low
+                float textHeight = Text.CalcHeight(memory.summary, viewRect.width);
+                Rect textRect = new Rect(0f, currentEntryY, viewRect.width, textHeight);
+                GUI.color = new Color(1f, 1f, 1f, 0.4f + (memory.weight * 0.6f));
                 Widgets.Label(textRect, memory.summary);
                 GUI.color = Color.white;
 

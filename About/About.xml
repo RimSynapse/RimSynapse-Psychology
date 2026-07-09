@@ -28,8 +28,30 @@
         <li>RimSynapse.Core</li>
     </loadAfter>
     <description>
-Introduces an AI-driven personality system for pawns, allowing their personalities to evolve over time based on in-game events, weighted memories, and relationship tracking.
+[h1]RimSynapse - Psychology[/h1]
+[b]True AI-Driven Personalities and Dynamic Mental States.[/b]
 
-☕ Buy me a coffee: https://buymeacoffee.com/archdukejim
+RimSynapse Psychology leverages the power of Local LLMs to completely overhaul how pawns think, feel, and react. Colonists are no longer just a collection of static traits; they are living, breathing entities with deep backstories, evolving psychological profiles, and unique interpretations of every event on the Rim.
+
+[h2]Features[/h2]
+[list]
+[*] [b]Dynamic Psychological Profiles:[/b] Each pawn maintains a living "Journal" and a "Psychological Profile" that updates nightly based on their experiences. 
+[*] [b]LLM-Interpreted Memories:[/b] A simple "-3 Ate without table" is transformed by the AI into a nuanced memory, shaping their worldview based on their existing traits and background.
+[*] [b]Extreme Mental States:[/b] Introduces horrifyingly realistic breaks like "Suicidal (Burn)", "Suicidal (Starvation)", and euphoric "Reckless" behaviors. These are rare, trait-driven, and highly impactful.
+[*] [b]Functional Depression:[/b] Pawns experiencing extreme despair may still go to work and sleep, but completely refuse to eat, requiring immediate intervention before they fade away.
+[*] [b]The "Snap Out Of It" Mechanic:[/b] Driven by the pawn's traits, survival instinct can override extreme mental states if they sustain too much pain or malnutrition—creating dramatic, emergent stories of survival.
+[*] [b]Interactive UI:[/b] Open the new Psychology tab to read their inner thoughts, analyze their mental trajectory, and see exactly how they view their fellow colonists.
+[/list]
+
+[h2]Requirements[/h2]
+[list]
+[*] [b]Harmony[/b]
+[*] [b]RimSynapse Core[/b] (Must be loaded before this mod)
+[*] A running local LLM backend via LM Studio or Ollama.
+[/list]
+
+[h2]Support the Project[/h2]
+If you enjoy the psychological depth this mod brings to RimWorld, consider buying me a coffee!
+[url=https://buymeacoffee.com/archdukejim]☕ Buy me a coffee[/url]
     </description>
 </ModMetaData>

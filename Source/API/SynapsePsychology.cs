@@ -212,16 +212,47 @@ namespace RimSynapse.Psychology.API
         /// Triggered when the pawn goes to sleep. Queues their daily events and average mood
         /// for LLM processing to update long-term context modifiers and break severity.
         /// </summary>
-        public static void QueueDailyPsychologyReview(Pawn pawn, float averageMood, System.Collections.Generic.List<RimSynapse.Models.WeightedMemory> dailyEvents)
+        public static void QueueDailyPsychologyReview(Pawn pawn, float averageMood, System.Collections.Generic.List<RimSynapse.Models.WeightedMemory> dailyEvents, Action<bool> onComplete = null)
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
-            // Connects to RimSynapse-Core LLM Queue
-            // For now, this is a placeholder. 
-            RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "DailyReviewStub", $"Would queue LLM review with {dailyEvents?.Count ?? 0} events and avg mood {averageMood:F2}. Waiting on Storyteller implementation.");
+            var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            if (coreComp == null) return;
 
-            sw.Stop();
-            RimSynapse.Utils.SynapseFileLogger.LogMetric("Psychology", pawn, "QueueDailyPsychologyReview_Stub", sw.ElapsedMilliseconds);
+            string systemPrompt = @"You are a clinical psychologist in the RimWorld universe.
+Write a concise, 50-word clinical assessment of this colonist's current mental state.
+Focus on their average mood today and their recent journal events.
+Do not use conversational language. Write it like a professional medical/psychiatric evaluation report.";
+
+            string recentEvents = dailyEvents == null || dailyEvents.Count == 0 
+                ? "No significant events today." 
+                : string.Join("\n", dailyEvents.Select(e => $"- {e.summary}"));
+
+            string userMessage = $@"Patient Name: {pawn.Name.ToStringShort}
+Average Mood Today: {averageMood:F2}
+Recent Journal Entries:
+{recentEvents}";
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result => 
+                {
+                    if (result.success)
+                    {
+                        coreComp.clinicalAssessment = result.content.Trim();
+                        onComplete?.Invoke(true);
+                    }
+                    else
+                    {
+                        Log.Warning($"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
+                        onComplete?.Invoke(false);
+                    }
+                    sw.Stop();
+                    RimSynapse.Utils.SynapseFileLogger.LogMetric("Psychology", pawn, "QueueDailyPsychologyReview", sw.ElapsedMilliseconds);
+                }
+            );
         }
     }
 }
