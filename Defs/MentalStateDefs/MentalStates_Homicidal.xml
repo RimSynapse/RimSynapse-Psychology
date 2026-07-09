@@ -16,6 +16,5 @@
         <stateEffecter>Berserk</stateEffecter>
         <tale>MentalStateBerserk</tale>
         <recoverFromSleep>true</recoverFromSleep>
-        <blocksNormalThoughts>true</blocksNormalThoughts>
     </MentalStateDef>
 </Defs>
