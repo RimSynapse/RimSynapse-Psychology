@@ -43,6 +43,9 @@ namespace RimSynapse.Psychology.Comps
         public float breakDurationHours = 6f; // Default 6 hours
         public BreakIntensity breakIntensity = BreakIntensity.Medium;
 
+        // Psychological Profile Data
+        public Dictionary<string, string> medicalProfile = new Dictionary<string, string>();
+
         // Daily sleep tracking
         private bool wasAsleep = false;
         private float dailyMoodAccumulator = 0f;
@@ -74,6 +77,13 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref lastExtremeNegativeTick, "lastExtremeNegativeTick", -1);
             Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 2500);
             Scribe_Values.Look(ref lastJournalUpdateDay, "lastJournalUpdateDay", -1);
+
+            Scribe_Collections.Look(ref medicalProfile, "medicalProfile", LookMode.Value, LookMode.Value);
+            
+            if (Scribe.mode == LoadSaveMode.LoadingVars)
+            {
+                if (medicalProfile == null) medicalProfile = new Dictionary<string, string>();
+            }
         }
 
         public override void CompTickRare()
@@ -178,16 +188,17 @@ namespace RimSynapse.Psychology.Comps
             string adulthood = pawn.story.Adulthood?.description ?? "Unknown adulthood.";
             string traits = string.Join(", ", pawn.story.traits.allTraits.Select(t => t.Label));
 
-            string systemPrompt = @"You are a master storyteller in the RimWorld universe.
-Write a 300-500 word psychological profile for the colonist.
-Your task is to weave the provided childhood and adulthood backstories into a single, cohesive narrative.
+            string systemPrompt = @"You are a colonist in the harsh RimWorld universe, writing in your personal journal.
+Write a 300-500 word autobiographical backstory. 
+Your task is to weave your provided childhood and adulthood backstories into a single, cohesive narrative.
 
 CRITICAL REQUIREMENTS:
-1. You MUST invent one specific, vivid memory (good or bad) from their childhood that explains their behavior.
-2. You MUST invent one specific, vivid memory (good or bad) from their adulthood that shaped who they are today.
-3. The story MUST be 300-500 words long.
-4. After the story, provide exactly 3 psychological archetype keywords (e.g., INTJ, Hypervigilant, Pragmatic).
-5. Finally, provide a 1-sentence journal entry from the pawn's perspective describing their first impression of arriving/surviving on this world.
+1. You MUST write ENTIRELY in the first person (using 'I', 'me', 'my'). Do NOT use the third person.
+2. You MUST invent one specific, vivid memory (good or bad) from your childhood that explains your behavior.
+3. You MUST invent one specific, vivid memory (good or bad) from your adulthood that shaped who you are today.
+4. The story MUST be 300-500 words long.
+5. After the story, provide exactly 3 psychological archetype keywords that describe you (e.g., INTJ, Hypervigilant, Pragmatic).
+6. Finally, provide a 1-sentence journal entry describing your first impression of arriving/surviving on this world.
 
 Format your response exactly like this:
 [STORY]

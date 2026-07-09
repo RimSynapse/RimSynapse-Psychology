@@ -4,6 +4,7 @@ using UnityEngine;
 using Verse;
 using RimWorld;
 using RimSynapse.Comps;
+using RimSynapse.Psychology.Comps;
 
 namespace RimSynapse.Psychology.UI
 {
@@ -22,6 +23,7 @@ namespace RimSynapse.Psychology.UI
         
         private Vector2 backstoryScrollPosition = Vector2.zero;
         private Vector2 journalScrollPosition = Vector2.zero;
+        private Vector2 profileScrollPosition = Vector2.zero;
         
         public override Vector2 InitialSize => new Vector2(650f, 750f);
         protected override float Margin => 0f;
@@ -104,18 +106,49 @@ namespace RimSynapse.Psychology.UI
             Widgets.DrawLineHorizontal(rect.x, curY, rect.width);
             curY += 15f;
 
-            // Draw Clinical Assessment
+            // Draw Clinical Assessment (Medical Form)
             Text.Font = GameFont.Medium;
-            Widgets.Label(new Rect(rect.x, curY, rect.width, 30f), "Clinical Assessment");
+            Widgets.Label(new Rect(rect.x, curY, rect.width, 30f), "Medical Evaluation");
             Text.Font = GameFont.Small;
             curY += 35f;
             
-            string assessment = string.IsNullOrEmpty(coreComp.clinicalAssessment)
-                ? "No clinical assessment available. (Generates nightly while sleeping)."
-                : coreComp.clinicalAssessment;
+            var pawnComp = pawn.TryGetComp<SynapsePawnComp>();
+            if (pawnComp == null) return;
+            
+            string[] formFields = { "Relationships", "Trauma", "ShapingEvents", "Disorders", "Satisfaction", "Fulfillment", "Arrogance", "Dedication" };
+            string[] formLabels = { "Relationships", "Trauma", "Shaping Events", "Disorders", "Satisfaction", "Fulfillment", "Arrogance", "Dedication" };
+            
+            float remainingHeight = rect.yMax - curY;
+            Rect viewRect = new Rect(rect.x, curY, rect.width - 20f, 1000f); 
+            Widgets.BeginScrollView(new Rect(rect.x, curY, rect.width, remainingHeight), ref profileScrollPosition, viewRect);
+            
+            float formY = curY;
+            for (int i = 0; i < formFields.Length; i++)
+            {
+                string key = formFields[i];
+                string label = formLabels[i];
+                string val = pawnComp.medicalProfile.TryGetValue(key, out string v) ? v : "[Awaiting Evaluation]";
                 
-            Rect assessmentRect = new Rect(rect.x, curY, rect.width, rect.yMax - curY);
-            Widgets.Label(assessmentRect, assessment);
+                // Draw Header
+                GUI.color = new Color(0.7f, 0.9f, 1f);
+                Text.Font = GameFont.Small;
+                Rect headerRect = new Rect(rect.x, formY, viewRect.width, 22f);
+                Widgets.Label(headerRect, $"<b>{label}</b>");
+                GUI.color = Color.white;
+                formY += 22f;
+                
+                // Draw Value
+                float textHeight = Text.CalcHeight(val, viewRect.width);
+                Rect valRect = new Rect(rect.x, formY, viewRect.width, textHeight);
+                Widgets.Label(valRect, val);
+                formY += textHeight + 10f;
+                
+                // Draw divider
+                Widgets.DrawLineHorizontal(rect.x, formY, viewRect.width);
+                formY += 10f;
+            }
+            
+            Widgets.EndScrollView();
         }
 
         private void DrawBackstoryTab(Rect rect)

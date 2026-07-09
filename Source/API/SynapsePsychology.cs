@@ -216,13 +216,32 @@ namespace RimSynapse.Psychology.API
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
+            var pawnComp = pawn.TryGetComp<SynapsePawnComp>();
             var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
-            if (coreComp == null) return;
+            if (pawnComp == null || coreComp == null) return;
 
-            string systemPrompt = @"You are a clinical psychologist in the RimWorld universe.
-Write a concise, 50-word clinical assessment of this colonist's current mental state.
-Focus on their average mood today and their recent journal events.
-Do not use conversational language. Write it like a professional medical/psychiatric evaluation report.";
+            string systemPrompt = @"You are a clinical psychologist in the RimWorld universe writing a formal medical evaluation.
+Based on this colonist's average mood today and recent journal events, assess the following 8 categories:
+- Relationships (How they feel about others)
+- Trauma (Recent pain or historical suffering)
+- ShapingEvents (Major life events, e.g., wedding, birth, deaths)
+- Disorders (Psychological conditions or 'None')
+- Satisfaction (General contentment with their life)
+- Fulfillment (Whether their work aligns with their passions)
+- Arrogance (Ego related to their titles or skills)
+- Dedication (Are they discontent? Likely to rebel or leave?)
+
+You MUST respond strictly in valid JSON format. Do not include markdown formatting or extra text.
+{
+  ""Relationships"": ""1-2 sentences..."",
+  ""Trauma"": ""1-2 sentences..."",
+  ""ShapingEvents"": ""1-2 sentences..."",
+  ""Disorders"": ""1-2 sentences..."",
+  ""Satisfaction"": ""1-2 sentences..."",
+  ""Fulfillment"": ""1-2 sentences..."",
+  ""Arrogance"": ""1-2 sentences..."",
+  ""Dedication"": ""1-2 sentences...""
+}";
 
             string recentEvents = dailyEvents == null || dailyEvents.Count == 0 
                 ? "No significant events today." 
@@ -241,7 +260,29 @@ Recent Journal Entries:
                 {
                     if (result.success)
                     {
-                        coreComp.clinicalAssessment = result.content.Trim();
+                        try
+                        {
+                            // Strip markdown if the LLM wraps it in ```json
+                            string json = result.content.Trim();
+                            if (json.StartsWith("```json")) json = json.Substring(7);
+                            if (json.StartsWith("```")) json = json.Substring(3);
+                            if (json.EndsWith("```")) json = json.Substring(0, json.Length - 3);
+                            json = json.Trim();
+
+                            var parsed = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                            if (parsed != null)
+                            {
+                                foreach (var kvp in parsed)
+                                {
+                                    pawnComp.medicalProfile[kvp.Key] = kvp.Value;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning($"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
+                        }
+                        
                         onComplete?.Invoke(true);
                     }
                     else
