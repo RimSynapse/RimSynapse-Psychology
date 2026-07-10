@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using Verse;
@@ -85,7 +85,7 @@ You MUST respond strictly in valid JSON format:
                         try
                         {
                             string json = JsonHelper.ExtractJson(result.content);
-                            if (json == null) { Log.Warning("[RimSynapse-Psychology] No JSON found in memory response."); return; }
+                            if (json == null) { RimSynapse.SynapseLog.Warn("psychology", "[RimSynapse-Psychology] No JSON found in memory response."); return; }
 
                             var parsed = JsonConvert.DeserializeObject<Dictionary<string, List<Dictionary<string, object>>>>(json);
                             if (parsed != null && parsed.ContainsKey("Memories"))
@@ -115,12 +115,12 @@ You MUST respond strictly in valid JSON format:
                                         });
                                     }
                                 }
-                                Log.Message($"[RimSynapse-Psychology] Opportunistic memories generated for {pastEvent.eventDescription}.");
+                                RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Opportunistic memories generated for {pastEvent.eventDescription}.");
                             }
                         }
                         catch (Exception ex)
                         {
-                            Log.Warning($"[RimSynapse-Psychology] Failed to parse JSON memories: {ex.Message}\nContent: {result.content}");
+                            RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse JSON memories: {ex.Message}\nContent: {result.content}");
                         }
                     }
                 },
@@ -177,13 +177,13 @@ This memory is from their CHILDHOOD. Keep it brief and grounded.
 
 RULES:
 - Write 80-120 words, first person (""I"", ""me"", ""my"")
-- Ground the memory in their skill bonuses — their abilities come from real experience
-- Generate a ""Hometown"" — their place of origin, matching their faction type:
-  - Outlander → a named settlement (e.g., ""Port Valen"")
-  - Tribal → a geographic feature or camp (e.g., ""the Ashen Ridge camp"")
-  - Pirate → a ship or den (e.g., ""the Rust Fang"")
-  - Imperial → a city or estate
-  - Nomadic/orphan → something vague (e.g., ""the trade roads south of Helixon"")
+- Ground the memory in their skill bonuses â€” their abilities come from real experience
+- Generate a ""Hometown"" â€” their place of origin, matching their faction type:
+  - Outlander â†’ a named settlement (e.g., ""Port Valen"")
+  - Tribal â†’ a geographic feature or camp (e.g., ""the Ashen Ridge camp"")
+  - Pirate â†’ a ship or den (e.g., ""the Rust Fang"")
+  - Imperial â†’ a city or estate
+  - Nomadic/orphan â†’ something vague (e.g., ""the trade roads south of Helixon"")
 
 You MUST respond in valid JSON:
 {
@@ -241,13 +241,13 @@ Skills: {skillBonuses}";
                                 gameTick = (int)(childTick - SynapseDateHelper.GetAdjustmentTick())
                             });
 
-                            Log.Message($"[RimSynapse-Psychology] Visitor childhood memory for {pawn.Name.ToStringShort}. Hometown: {coreComp.hometown ?? "none"}");
+                            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Visitor childhood memory for {pawn.Name.ToStringShort}. Hometown: {coreComp.hometown ?? "none"}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning($"[RimSynapse-Psychology] Failed to parse visitor childhood memory: {ex.Message}");
+                    RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse visitor childhood memory: {ex.Message}");
                 }
             }
 
@@ -259,7 +259,7 @@ Skills: {skillBonuses}";
             else
             {
                 MarkBackstoryCreated(pawn);
-                Log.Message($"[RimSynapse-Psychology] Visitor backstory complete for {pawn.Name.ToStringShort} (childhood only).");
+                RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Visitor backstory complete for {pawn.Name.ToStringShort} (childhood only).");
             }
         }
 
@@ -286,7 +286,7 @@ RULES:
 - Write 80-120 words, first person (""I"", ""me"", ""my"")
 - Ground the memory in their skill bonuses
 - If a childhood memory is provided, maintain narrative continuity
-- This should be a defining adult moment — what made them who they are
+- This should be a defining adult moment â€” what made them who they are
 
 You MUST respond in valid JSON:
 {
@@ -340,18 +340,18 @@ Skills: {skillBonuses}{hometownContext}{childhoodContext}";
                                 gameTick = (int)(adultTick - SynapseDateHelper.GetAdjustmentTick())
                             });
 
-                            Log.Message($"[RimSynapse-Psychology] Visitor adulthood memory for {pawn.Name.ToStringShort} ({memoryText.Length} chars).");
+                            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Visitor adulthood memory for {pawn.Name.ToStringShort} ({memoryText.Length} chars).");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning($"[RimSynapse-Psychology] Failed to parse visitor adulthood memory: {ex.Message}");
+                    RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse visitor adulthood memory: {ex.Message}");
                 }
             }
 
             MarkBackstoryCreated(pawn);
-            Log.Message($"[RimSynapse-Psychology] Visitor backstory complete for {pawn.Name.ToStringShort}.");
+            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Visitor backstory complete for {pawn.Name.ToStringShort}.");
         }
 
         /// <summary>
@@ -408,7 +408,7 @@ Skills: {skillBonuses}{hometownContext}{childhoodContext}";
         /// <summary>
         /// Triggered by the Core framework when the LLM queue is idle.
         /// Scans all world faction leaders for backstory generation.
-        /// These are "World VIPs" — they get backstories regardless of whether they're on a map.
+        /// These are "World VIPs" â€” they get backstories regardless of whether they're on a map.
         /// If a leader dies or loses leadership, the new leader will get queued next cycle.
         ///
         /// Uses the memory-first pipeline:
@@ -436,7 +436,7 @@ Skills: {skillBonuses}{hometownContext}{childhoodContext}";
                 {
                     targetLeader = faction.leader;
                     targetFaction = faction;
-                    break; // Take the first one found — we do one per cycle
+                    break; // Take the first one found â€” we do one per cycle
                 }
             }
 
@@ -475,7 +475,7 @@ Skills: {skillBonuses}{hometownContext}{childhoodContext}";
                                     string history = historyField.GetValue(tracker) as string;
                                     if (!string.IsNullOrEmpty(history))
                                     {
-                                        return $"\nFaction History (already established — your memories must be consistent with this):\n\"{history}\"";
+                                        return $"\nFaction History (already established â€” your memories must be consistent with this):\n\"{history}\"";
                                     }
                                 }
                             }
@@ -486,7 +486,7 @@ Skills: {skillBonuses}{hometownContext}{childhoodContext}";
             }
             catch (Exception ex)
             {
-                Log.Warning($"[RimSynapse-Psychology] Could not read faction history from StoryTeller: {ex.Message}");
+                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Could not read faction history from StoryTeller: {ex.Message}");
             }
             return "";
         }
@@ -500,7 +500,7 @@ Skills: {skillBonuses}{hometownContext}{childhoodContext}";
             string disabledWork = FormatDisabledWork(childhood);
 
             string systemPrompt = @"You are writing a vivid first-person memory for a faction LEADER in the RimWorld universe.
-This memory is from their CHILDHOOD — before they held power.
+This memory is from their CHILDHOOD â€” before they held power.
 
 RULES:
 - Write 100-200 words, first person (""I"", ""me"", ""my"")
@@ -508,12 +508,12 @@ RULES:
 - Ground the memory in the skill bonuses: explain WHAT childhood experience gave them these skills
 - If work types are disabled, hint at WHY (trauma, cultural taboo, physical limitation)
 - If faction history is provided, the childhood should be consistent with that world
-- The memory should hint at the seeds of leadership — even as a child, something set them apart
-- You MUST generate a ""Hometown"" — their place of origin, matching the faction type:
-  - Outlander → a named settlement or outpost (e.g., ""Kharstead"", ""Port Valen"")
-  - Tribal → a geographic feature, camp, or caravan route (e.g., ""the Redstone caravan"", ""the marshlands east of Sleeping Ridge"")
-  - Pirate → a ship, station, or raider den (e.g., ""the Rust Fang"", ""Scrapheap Station"")
-  - Imperial → a named city or estate (e.g., ""the Stellarch's court at Novium"")
+- The memory should hint at the seeds of leadership â€” even as a child, something set them apart
+- You MUST generate a ""Hometown"" â€” their place of origin, matching the faction type:
+  - Outlander â†’ a named settlement or outpost (e.g., ""Kharstead"", ""Port Valen"")
+  - Tribal â†’ a geographic feature, camp, or caravan route (e.g., ""the Redstone caravan"", ""the marshlands east of Sleeping Ridge"")
+  - Pirate â†’ a ship, station, or raider den (e.g., ""the Rust Fang"", ""Scrapheap Station"")
+  - Imperial â†’ a named city or estate (e.g., ""the Stellarch's court at Novium"")
 - RimWorld setting: frontier planets, tribal societies, pirate dens, outlander settlements
 
 You MUST respond in valid JSON:
@@ -586,13 +586,13 @@ Write a vivid childhood memory for this future leader.";
                                 gameTick = (int)(childTick - SynapseDateHelper.GetAdjustmentTick())
                             });
 
-                            Log.Message($"[RimSynapse-Psychology] Leader childhood memory generated for {leader.Name.ToStringShort} ({memoryText.Length} chars). Hometown: {coreComp.hometown ?? "none"}");
+                            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Leader childhood memory generated for {leader.Name.ToStringShort} ({memoryText.Length} chars). Hometown: {coreComp.hometown ?? "none"}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning($"[RimSynapse-Psychology] Failed to parse leader childhood memory: {ex.Message}");
+                    RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse leader childhood memory: {ex.Message}");
                 }
             }
 
@@ -618,7 +618,7 @@ Write a vivid childhood memory for this future leader.";
             // Include the childhood memory for continuity
             var childhoodMem = coreComp.memories.LastOrDefault(m => m.memoryType == "BackstoryChildhood");
             string childhoodContext = childhoodMem != null
-                ? $"\nChildhood Memory (already generated — maintain continuity):\n\"{childhoodMem.summary}\""
+                ? $"\nChildhood Memory (already generated â€” maintain continuity):\n\"{childhoodMem.summary}\""
                 : "";
 
             // Include hometown if generated
@@ -627,7 +627,7 @@ Write a vivid childhood memory for this future leader.";
                 : "";
 
             string systemPrompt = @"You are writing a vivid first-person memory for a faction LEADER in the RimWorld universe.
-This memory is from their ADULTHOOD — specifically about their RISE TO POWER.
+This memory is from their ADULTHOOD â€” specifically about their RISE TO POWER.
 
 RULES:
 - Write 150-250 words, first person (""I"", ""me"", ""my"")
@@ -635,7 +635,7 @@ RULES:
   1. How you gained influence and skill in the faction (grounded in the adulthood backstory + skill bonuses)
   2. The specific moment you took control (a challenge, a crisis, a succession, a coup)
 - If faction history is provided, your rise must be consistent with it
-- Ground the memory in the skill bonuses — your adulthood skills are what let you seize power
+- Ground the memory in the skill bonuses â€” your adulthood skills are what let you seize power
 - The memory should feel like the defining moment of your life
 - RimWorld setting: political intrigue, tribal succession, pirate might-makes-right, outlander elections
 
@@ -699,17 +699,17 @@ Write their rise-to-power memory.";
                                 gameTick = (int)(riseTick - SynapseDateHelper.GetAdjustmentTick())
                             });
 
-                            Log.Message($"[RimSynapse-Psychology] Leader rise memory generated for {leader.Name.ToStringShort} ({memoryText.Length} chars).");
+                            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Leader rise memory generated for {leader.Name.ToStringShort} ({memoryText.Length} chars).");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning($"[RimSynapse-Psychology] Failed to parse leader rise memory: {ex.Message}");
+                    RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse leader rise memory: {ex.Message}");
                 }
             }
 
-            // Chain to Step 3: Personality synthesis (permanent — no daily reviews for leaders)
+            // Chain to Step 3: Personality synthesis (permanent â€” no daily reviews for leaders)
             GenerateLeaderPersonalityProfile(leader, coreComp);
         }
 
@@ -734,12 +734,12 @@ Write their rise-to-power memory.";
 
             string systemPrompt = @"You are analyzing the psychology of a faction LEADER in the RimWorld universe.
 Given their childhood memory, rise-to-power memory, and personality traits, synthesize a permanent psychological profile.
-This leader does NOT get daily reviews — this profile is their permanent character assessment.
+This leader does NOT get daily reviews â€” this profile is their permanent character assessment.
 
 OUTPUT:
-1. Personality — A 2-3 sentence personality summary (third person). How do they lead? What drives them? What is their weakness?
-2. Archetypes — Three psychological classifications.
-3. Leadership Style — One sentence describing how they run their faction.
+1. Personality â€” A 2-3 sentence personality summary (third person). How do they lead? What drives them? What is their weakness?
+2. Archetypes â€” Three psychological classifications.
+3. Leadership Style â€” One sentence describing how they run their faction.
 
 You MUST respond in valid JSON:
 {
@@ -793,19 +793,19 @@ Traits: {traits}{hometownContext}
                             if (parsed.TryGetValue("LeadershipStyle", out object style))
                                 coreComp.llmTraits.Add($"Leadership: {style}");
 
-                            Log.Message($"[RimSynapse-Psychology] Leader personality profile synthesized for {leader.Name.ToStringShort}.");
+                            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Leader personality profile synthesized for {leader.Name.ToStringShort}.");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning($"[RimSynapse-Psychology] Failed to parse leader personality profile: {ex.Message}");
+                    RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse leader personality profile: {ex.Message}");
                 }
             }
 
-            // Finalize — mark backstory complete
+            // Finalize â€” mark backstory complete
             MarkBackstoryCreated(leader);
-            Log.Message($"[RimSynapse-Psychology] Leader backstory pipeline complete for {leader.Name.ToStringShort} (3-step).");
+            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Leader backstory pipeline complete for {leader.Name.ToStringShort} (3-step).");
         }
 
         /// <summary>
@@ -930,13 +930,13 @@ You MUST respond strictly in valid JSON format:
                                     if (!pAComp.socialNetwork.ContainsKey(bId)) pAComp.socialNetwork[bId] = new SocialRecord();
                                     pAComp.socialNetwork[bId].relationshipMemories.Add(memory);
                                     
-                                    Log.Message($"[RimSynapse-Psychology] Generated relationship memory for {pawnA.Name.ToStringShort} regarding {pawnB.Name.ToStringShort}.");
+                                    RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Generated relationship memory for {pawnA.Name.ToStringShort} regarding {pawnB.Name.ToStringShort}.");
                                 }
                             }
                         }
                         catch (Exception ex)
                         {
-                            Log.Warning($"[RimSynapse-Psychology] Failed to parse relationship evaluation: {ex.Message}");
+                            RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse relationship evaluation: {ex.Message}");
                         }
                     }
                 },
@@ -946,3 +946,4 @@ You MUST respond strictly in valid JSON format:
         }
     }
 }
+

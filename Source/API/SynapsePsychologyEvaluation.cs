@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using Verse;
@@ -204,14 +204,14 @@ Recent Memories:
                         }
                         catch (Exception ex)
                         {
-                            Log.Warning($"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
+                            RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
                         }
                         
                         onComplete?.Invoke(true);
                     }
                     else
                     {
-                        Log.Warning($"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
+                        RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
                         onComplete?.Invoke(false);
                     }
                     sw.Stop();
@@ -222,3 +222,4 @@ Recent Memories:
         }
     }
 }
+

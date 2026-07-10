@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Verse;
 using RimWorld;
@@ -76,7 +76,7 @@ namespace RimSynapse.Psychology
                     Description = "Generates AI backstories for all faction leaders (World VIPs). Runs after faction history to use it as context.",
                     Priority = 4, // Below colonist tasks (8, 5) and faction history (6)
                     Weight = 1.5f,
-                    CooldownTicks = 5000 // Short cooldown — iterate through leaders quickly
+                    CooldownTicks = 5000 // Short cooldown â€” iterate through leaders quickly
                 });
             
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_RelationshipEvaluation",
@@ -90,7 +90,7 @@ namespace RimSynapse.Psychology
                     CooldownTicks = 15000
                 });
             
-            Log.Message("[RimSynapse-Psychology] Mod initialized.");
+            RimSynapse.SynapseLog.Info("psychology", "[RimSynapse-Psychology] Mod initialized.");
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -99,7 +99,7 @@ namespace RimSynapse.Psychology
             listingStandard.Begin(inRect);
             
             listingStandard.Label("Note: Debug logging is now globally configured in RimSynapse Core settings.");
-            // ── Mechanics ───────────────────────────────────────────
+            // â”€â”€ Mechanics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             listingStandard.Label("Mechanics");
             listingStandard.GapLine();
 
@@ -149,7 +149,8 @@ namespace RimSynapse.Psychology
                 }
             }
             
-            Log.Message($"[RimSynapse-Psychology] Injected SynapsePawnComp into {injectedCount} humanlike ThingDefs.");
+            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Injected SynapsePawnComp into {injectedCount} humanlike ThingDefs.");
         }
     }
 }
+

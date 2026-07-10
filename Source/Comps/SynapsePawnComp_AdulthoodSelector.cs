@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
@@ -35,7 +35,7 @@ namespace RimSynapse.Psychology.Comps
             if (pawn.ageTracker.AgeBiologicalYears < 20) return;
             if (pawn.Faction != Faction.OfPlayer) return;
 
-            // This pawn is 20+ with no adulthood backstory — trigger LLM selection
+            // This pawn is 20+ with no adulthood backstory â€” trigger LLM selection
             hasCheckedAdulthood = true;
             isSelectingAdulthood = true;
 
@@ -69,7 +69,7 @@ Based on their childhood backstory, accumulated life memories, and personality t
 
 RULES:
 - Choose the backstory that most naturally follows from their lived experience and memories
-- Consider their skill development — a pawn who spent years healing should become a medic, not a soldier
+- Consider their skill development â€” a pawn who spent years healing should become a medic, not a soldier
 - Each candidate shows its skill bonuses and any work it DISABLES
 - Be aware: choosing a backstory that disables work they currently do WILL affect gameplay
 - After selecting, write a brief 100-word first-person memory of the moment they embraced this identity
@@ -96,7 +96,7 @@ Traits: {traits}{hometownContext}
 
 Select the best-fitting adulthood backstory by number.";
 
-            var options = new ChatOptions { priority = 5 }; // High priority — this is a milestone event
+            var options = new ChatOptions { priority = 5 }; // High priority â€” this is a milestone event
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -113,7 +113,7 @@ Select the best-fitting adulthood backstory by number.";
 
             if (!result.success)
             {
-                Log.Warning($"[RimSynapse-Psychology] Failed to select adulthood backstory for {pawn.Name.ToStringShort}: {result.error}");
+                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to select adulthood backstory for {pawn.Name.ToStringShort}: {result.error}");
                 hasCheckedAdulthood = false; // Allow retry
                 return;
             }
@@ -121,7 +121,7 @@ Select the best-fitting adulthood backstory by number.";
             try
             {
                 string json = JsonHelper.ExtractJson(result.content);
-                if (json == null) { Log.Warning("[RimSynapse-Psychology] No JSON in adulthood selection response."); hasCheckedAdulthood = false; return; }
+                if (json == null) { RimSynapse.SynapseLog.Warn("psychology", "[RimSynapse-Psychology] No JSON in adulthood selection response."); hasCheckedAdulthood = false; return; }
 
                 var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
                 if (parsed == null || !parsed.ContainsKey("ChosenNumber")) { hasCheckedAdulthood = false; return; }
@@ -129,7 +129,7 @@ Select the best-fitting adulthood backstory by number.";
                 int chosenIdx = Convert.ToInt32(parsed["ChosenNumber"]) - 1; // 1-indexed in prompt
                 if (chosenIdx < 0 || chosenIdx >= candidates.Count)
                 {
-                    Log.Warning($"[RimSynapse-Psychology] LLM chose invalid backstory index {chosenIdx + 1} for {pawn.Name.ToStringShort}.");
+                    RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] LLM chose invalid backstory index {chosenIdx + 1} for {pawn.Name.ToStringShort}.");
                     hasCheckedAdulthood = false;
                     return;
                 }
@@ -197,18 +197,18 @@ Select the best-fitting adulthood backstory by number.";
                     pawn
                 );
 
-                Log.Message($"[RimSynapse-Psychology] Adulthood backstory assigned for {pawn.Name.ToStringShort}: {chosen.title}. Conflicts: {string.Join(", ", conflictingJobs)}");
+                RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Adulthood backstory assigned for {pawn.Name.ToStringShort}: {chosen.title}. Conflicts: {string.Join(", ", conflictingJobs)}");
             }
             catch (Exception ex)
             {
-                Log.Warning($"[RimSynapse-Psychology] Failed to apply adulthood backstory: {ex.Message}");
+                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to apply adulthood backstory: {ex.Message}");
                 hasCheckedAdulthood = false; // Allow retry
             }
         }
 
-        // ────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         //  Helpers for adulthood selection
-        // ────────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private List<BackstoryDef> GetAdulthoodCandidates(Pawn pawn)
         {
@@ -228,7 +228,7 @@ Select the best-fitting adulthood backstory by number.";
                 if (catFiltered.Count > 5) allAdult = catFiltered;
             }
 
-            // Take a reasonable subset — shuffle and pick ~12-15 candidates
+            // Take a reasonable subset â€” shuffle and pick ~12-15 candidates
             allAdult.Shuffle();
             return allAdult.Take(15).ToList();
         }
@@ -267,7 +267,7 @@ Select the best-fitting adulthood backstory by number.";
                     ? $" | Disables: {b.workDisables}"
                     : "";
 
-                sb.AppendLine($"{i + 1}. \"{b.title}\" — {b.description?.TrimEnd() ?? "No description."}");
+                sb.AppendLine($"{i + 1}. \"{b.title}\" â€” {b.description?.TrimEnd() ?? "No description."}");
                 sb.AppendLine($"   Skills: {skills}{disabled}");
                 sb.AppendLine();
             }
@@ -275,3 +275,4 @@ Select the best-fitting adulthood backstory by number.";
         }
     }
 }
+
