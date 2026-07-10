@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
     <name>RimSynapse - Psychology</name>
     <author>RimSynapse Team</author>
@@ -32,6 +32,8 @@
     </loadAfter>
     <description>
 [h1]RimSynapse - Psychology[/h1]
+[b]📚 [url=https://github.com/RimSynapse/RimSynapse-Psychology/wiki]Official Wiki & Documentation[/url][/b]
+
 [b]True AI-Driven Personalities, Dynamic Memories, and Evolving Mental States.[/b]
 
 RimSynapse Psychology leverages the power of Local LLMs to completely overhaul how pawns think, feel, and react. Colonists are no longer just a collection of static traits; they are living, breathing entities with deep backstories, evolving psychological profiles, and unique interpretations of every event on the Rim.
@@ -39,10 +41,10 @@ RimSynapse Psychology leverages the power of Local LLMs to completely overhaul h
 [h2]Core Systems[/h2]
 [list]
 [*] [b]AI-Generated Backstories:[/b] When a colonist joins, the LLM weaves their vanilla childhood and adulthood into a rich, first-person autobiography and assigns psychological archetype traits.
-[*] [b]Nightly Clinical Evaluation:[/b] Every night when a pawn falls asleep, their entire day — average mood, survival stats, lifetime kills, and memories — is sent to the LLM for a formal psychological assessment across 8 categories (Relationships, Trauma, Satisfaction, etc.).
+[*] [b]Nightly Clinical Evaluation:[/b] Every night when a pawn falls asleep, their entire day â€” average mood, survival stats, lifetime kills, and memories â€” is sent to the LLM for a formal psychological assessment across 8 categories (Relationships, Trauma, Satisfaction, etc.).
 [*] [b]Dynamic Memory System:[/b] Major events (raids, marriages, deaths, legendary crafts) generate personalized 1-2 sentence memories for colonists. Each memory carries weighted tags (e.g. [Food], [Resentment], [Combat]) and a decay rate.
 [*] [b]Desensitization Engine:[/b] The LLM receives a pawn's lifetime statistics (kills, damage taken, time as colonist) alongside their current psychological burdens. A pawn's first kill is traumatizing; their 25th is just another day. The AI decides.
-[*] [b]Defining Memories:[/b] Life-altering events (marriages, first kills, deaths of close friends) are flagged with zero decay — they never fade. These defining memories permanently shape a pawn's psychology.
+[*] [b]Defining Memories:[/b] Life-altering events (marriages, first kills, deaths of close friends) are flagged with zero decay â€” they never fade. These defining memories permanently shape a pawn's psychology.
 [*] [b]Tag Correlation Analysis:[/b] Instead of dumping raw memories to the LLM, the system aggregates memory weights by tag and reports top psychological burdens (e.g. "[Death]: Weight 8.5, 14 incidents"). This provides context without overloading the AI.
 [/list]
 
@@ -61,11 +63,11 @@ RimSynapse Psychology leverages the power of Local LLMs to completely overhaul h
 [*] [b]Visitor Backstories:[/b] Important NPCs (faction leaders, prisoners, royalty, family members) also get LLM-generated backstories during idle processing time.
 [/list]
 
-[h2]Default Settings (adjustable in-game via Mod Settings → RimSynapse Psychology)[/h2]
+[h2]Default Settings (adjustable in-game via Mod Settings â†’ RimSynapse Psychology)[/h2]
 [code]
   Memory Decay Rate Multiplier:  1.0x   (Higher = memories fade faster, Lower = memories linger)
   Sensitivity Burden Threshold:  0.5    (Minimum tag weight before the LLM considers it a psychological burden)
-  Enable Suicidal Behaviors:     true   (Sensitive content toggle — disabling removes all suicidal mental states)
+  Enable Suicidal Behaviors:     true   (Sensitive content toggle â€” disabling removes all suicidal mental states)
 [/code]
 
 [h2]Requirements[/h2]
@@ -77,6 +79,7 @@ RimSynapse Psychology leverages the power of Local LLMs to completely overhaul h
 
 [h2]Support the Project[/h2]
 If you enjoy the psychological depth this mod brings to RimWorld, consider buying me a coffee!
-[url=https://buymeacoffee.com/archdukejim]☕ Buy me a coffee[/url]
+[url=https://buymeacoffee.com/archdukejim]â˜• Buy me a coffee[/url]
     </description>
 </ModMetaData>
+
