@@ -4,7 +4,8 @@ using System.Linq;
 using RimWorld;
 using Verse;
 using RimSynapse.Models;
-using RimSynapse.Internal; // Assuming this is for SynapseLog if available, but let's avoid tight coupling.
+using RimSynapse.Internal;
+using RimSynapse.Psychology.Models;
 
 namespace RimSynapse.Psychology.Comps
 {
@@ -45,6 +46,10 @@ namespace RimSynapse.Psychology.Comps
 
         // Psychological Profile Data
         public Dictionary<string, string> medicalProfile = new Dictionary<string, string>();
+        
+        // Social / Trust
+        public Dictionary<string, SocialRecord> socialNetwork = new Dictionary<string, SocialRecord>();
+        private int socialTickCounter = 0;
 
         // Daily sleep tracking
         private bool wasAsleep = false;
@@ -83,10 +88,13 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref hasCheckedAdulthood, "hasCheckedAdulthood", false);
 
             Scribe_Collections.Look(ref medicalProfile, "medicalProfile", LookMode.Value, LookMode.Value);
+            Scribe_Collections.Look(ref socialNetwork, "socialNetwork", LookMode.Value, LookMode.Deep);
+            Scribe_Values.Look(ref socialTickCounter, "socialTickCounter", 0);
             
             if (Scribe.mode == LoadSaveMode.LoadingVars)
             {
                 if (medicalProfile == null) medicalProfile = new Dictionary<string, string>();
+                if (socialNetwork == null) socialNetwork = new Dictionary<string, SocialRecord>();
             }
         }
 
@@ -140,6 +148,50 @@ namespace RimSynapse.Psychology.Comps
                         
                         wasAsleep = isAsleep;
                     }
+                }
+
+                // Passive Familiarity Growth & Decay
+                socialTickCounter++;
+                if (socialTickCounter >= 10) // Every 2500 ticks (~1 hour)
+                {
+                    socialTickCounter = 0;
+                    UpdateSocialNetwork(pawn);
+                }
+            }
+        }
+
+        private void UpdateSocialNetwork(Pawn pawn)
+        {
+            if (pawn.Map == null || pawn.Faction != Faction.OfPlayer) return;
+
+            var room = pawn.GetRoom();
+            
+            // 1. Decay all familiarity slightly (-0.2 per hour = -4.8 per day)
+            // It takes ~20 days to lose 100 familiarity if they never see each other.
+            var keys = socialNetwork.Keys.ToList();
+            foreach (var key in keys)
+            {
+                var record = socialNetwork[key];
+                record.AddFamiliarity(-0.2f);
+            }
+
+            // 2. Grow familiarity for pawns nearby/same room
+            foreach (var other in pawn.Map.mapPawns.FreeColonists)
+            {
+                if (other == pawn) continue;
+                
+                bool near = false;
+                if (room != null && room == other.GetRoom()) near = true;
+                else if (pawn.Position.DistanceTo(other.Position) < 10f) near = true;
+
+                if (near)
+                {
+                    var otherId = other.GetUniqueLoadID();
+                    if (!socialNetwork.ContainsKey(otherId)) socialNetwork[otherId] = new SocialRecord();
+                    
+                    // Add growth (+0.5 per hour = +12 per day max)
+                    // Overcomes decay
+                    socialNetwork[otherId].AddFamiliarity(0.5f);
                 }
             }
         }

@@ -106,7 +106,7 @@ Skill Bonuses from Childhood: {skillBonuses}
 {(string.IsNullOrEmpty(disabledWork) ? "" : $"Disabled Work Types: {disabledWork}\n")}{factionContext}
 Write a vivid childhood memory grounded in these skills.";
 
-            var options = new ChatOptions { priority = 3 };
+            var options = new ChatOptions { priority = 5 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -222,7 +222,7 @@ Skill Bonuses from Adulthood: {skillBonuses}
 
 Write a vivid adulthood memory grounded in these skills.";
 
-            var options = new ChatOptions { priority = 3 };
+            var options = new ChatOptions { priority = 4 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -327,7 +327,7 @@ Current Traits: {traits}
 
 {memoriesContext}Synthesize their psychological profile.";
 
-            var options = new ChatOptions { priority = 2 };
+            var options = new ChatOptions { priority = 3 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,

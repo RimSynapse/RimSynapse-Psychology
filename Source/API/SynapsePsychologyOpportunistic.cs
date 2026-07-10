@@ -5,7 +5,9 @@ using Verse;
 using RimWorld;
 using RimSynapse.Psychology.Comps;
 using RimSynapse.Models;
+using RimSynapse.Models;
 using RimSynapse.Utils;
+using RimSynapse.Psychology.Models;
 using Newtonsoft.Json;
 
 namespace RimSynapse.Psychology.API
@@ -70,7 +72,7 @@ You MUST respond strictly in valid JSON format:
             }
 
             // Use priority -1 so it stays at the absolute bottom of the queue and yields to real events
-            var options = new ChatOptions { priority = -1 };
+            var options = new ChatOptions { priority = 3 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -195,7 +197,7 @@ Childhood: ""{childhoodTitle}""
 Description: ""{childhoodDesc}""
 Skills: {skillBonuses}";
 
-            var options = new ChatOptions { priority = -1 };
+            var options = new ChatOptions { priority = 2 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -297,7 +299,7 @@ Adulthood: ""{adulthoodTitle}""
 Description: ""{adulthoodDesc}""
 Skills: {skillBonuses}{hometownContext}{childhoodContext}";
 
-            var options = new ChatOptions { priority = -1 };
+            var options = new ChatOptions { priority = 1 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -534,7 +536,7 @@ Skill Bonuses from Childhood: {skillBonuses}
 
 Write a vivid childhood memory for this future leader.";
 
-            var options = new ChatOptions { priority = 4 };
+            var options = new ChatOptions { priority = 3 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -653,7 +655,7 @@ Skill Bonuses from Adulthood: {skillBonuses}
 
 Write their rise-to-power memory.";
 
-            var options = new ChatOptions { priority = 4 };
+            var options = new ChatOptions { priority = 2 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -755,7 +757,7 @@ Traits: {traits}{hometownContext}
 
 {memoriesContext}Synthesize their permanent psychological profile.";
 
-            var options = new ChatOptions { priority = 4 };
+            var options = new ChatOptions { priority = 1 };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -844,6 +846,103 @@ Traits: {traits}{hometownContext}
             if (p.royalty != null && p.royalty.AllTitlesForReading.Any()) return true;
             if (p.relations != null && p.relations.FamilyByBlood.Any(r => r.Faction == Faction.OfPlayer || r.IsPrisonerOfColony)) return true;
             return false;
+        }
+
+        public static bool TriggerRelationshipEvaluation()
+        {
+            if (Current.ProgramState != ProgramState.Playing || Find.CurrentMap == null) return false;
+
+            var colonists = Find.CurrentMap.mapPawns.FreeColonists.ToList();
+            if (colonists.Count < 2) return false;
+
+            // Find a valid pair
+            Pawn pawnA = null;
+            Pawn pawnB = null;
+            SocialRecord sharedRecord = null;
+
+            foreach (var p in colonists.OrderBy(_ => Rand.Value))
+            {
+                var comp = p.TryGetComp<SynapsePawnComp>();
+                if (comp == null) continue;
+
+                var candidateIds = comp.socialNetwork.Keys.Where(k => 
+                    comp.socialNetwork[k].familiarity >= 25f && 
+                    comp.socialNetwork[k].relationshipMemories.Count < 5).ToList();
+                
+                if (candidateIds.Count == 0) continue;
+
+                string targetId = candidateIds.RandomElement();
+                Pawn target = colonists.FirstOrDefault(c => c.GetUniqueLoadID() == targetId);
+                
+                if (target != null)
+                {
+                    pawnA = p;
+                    pawnB = target;
+                    sharedRecord = comp.socialNetwork[targetId];
+                    break;
+                }
+            }
+
+            if (pawnA == null || pawnB == null) return false;
+
+            string systemPrompt = @"You are the internal monologue of a colonist on a RimWorld.
+Evaluate your relationship with the specified pawn based on your traits, their traits, your familiarity level (0-100), and your trust level (-100 to 100).
+Write a single, highly personal 'Relationship Memory' (1-2 sentences) summarizing exactly how you feel about them. 
+This might be recited at their funeral or your wedding, so make it deeply personal, referencing trust, betrayals, or shared burdens.
+
+You MUST respond strictly in valid JSON format:
+{
+  ""Memory"": ""I used to think Val was just a stuck-up noble, but after she dragged me out of that mech cluster, I'd trust her with my life.""
+}";
+
+            var compA = pawnA.GetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            var compB = pawnB.GetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+            string burdensA = compA != null ? compA.GetTopMemoryBurdens(3, 0.5f) : "None";
+            string burdensB = compB != null ? compB.GetTopMemoryBurdens(3, 0.5f) : "None";
+
+            string userMessage = $"Your Name: {pawnA.Name.ToStringShort}\nYour Traits: {pawnA.story?.traits?.allTraits.Select(t => t.Label).ToCommaList() ?? "None"}\nYour Burdens: {burdensA}\n\n" +
+                                 $"Their Name: {pawnB.Name.ToStringShort}\nTheir Traits: {pawnB.story?.traits?.allTraits.Select(t => t.Label).ToCommaList() ?? "None"}\nTheir Burdens: {burdensB}\n\n" +
+                                 $"Familiarity (0-100): {sharedRecord.familiarity:F0}\nTrust (-100 to 100): {sharedRecord.trust:F0}";
+
+            var options = new ChatOptions { priority = 3 };
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result => 
+                {
+                    if (result.success)
+                    {
+                        try
+                        {
+                            string json = JsonHelper.ExtractJson(result.content);
+                            if (json == null) return;
+
+                            var parsed = JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, string>>(json);
+                            if (parsed != null && parsed.ContainsKey("Memory"))
+                            {
+                                string memory = parsed["Memory"];
+                                var pAComp = pawnA.GetComp<SynapsePawnComp>();
+                                if (pAComp != null)
+                                {
+                                    string bId = pawnB.GetUniqueLoadID();
+                                    if (!pAComp.socialNetwork.ContainsKey(bId)) pAComp.socialNetwork[bId] = new SocialRecord();
+                                    pAComp.socialNetwork[bId].relationshipMemories.Add(memory);
+                                    
+                                    Log.Message($"[RimSynapse-Psychology] Generated relationship memory for {pawnA.Name.ToStringShort} regarding {pawnB.Name.ToStringShort}.");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning($"[RimSynapse-Psychology] Failed to parse relationship evaluation: {ex.Message}");
+                        }
+                    }
+                },
+                options);
+
+            return true;
         }
     }
 }

@@ -20,6 +20,18 @@ namespace RimSynapse.Psychology
             var harmony = new Harmony("RimSynapse.Psychology");
             harmony.PatchAll();
             
+            // Manual Patch for Funeral (Ideology only)
+            var funeralType = AccessTools.TypeByName("RimWorld.RitualOutcomeEffectWorker_Funeral");
+            if (funeralType != null)
+            {
+                var original = AccessTools.Method(funeralType, "Apply");
+                var postfix = AccessTools.Method(typeof(Patches.Patch_Funeral_Apply), "Postfix");
+                if (original != null && postfix != null)
+                {
+                    harmony.Patch(original, null, new HarmonyMethod(postfix));
+                }
+            }
+            
             // Register with Core
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
             
@@ -65,6 +77,17 @@ namespace RimSynapse.Psychology
                     Priority = 4, // Below colonist tasks (8, 5) and faction history (6)
                     Weight = 1.5f,
                     CooldownTicks = 5000 // Short cooldown — iterate through leaders quickly
+                });
+            
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_RelationshipEvaluation",
+                (System.Func<bool>)API.SynapsePsychology.TriggerRelationshipEvaluation,
+                new RimSynapse.Internal.OpportunisticTaskConfig
+                {
+                    Label = "Relationship Evaluation",
+                    Description = "Generates LLM relationship memories between pawns based on high familiarity or trust changes.",
+                    Priority = 3,
+                    Weight = 1.0f,
+                    CooldownTicks = 15000
                 });
             
             Log.Message("[RimSynapse-Psychology] Mod initialized.");

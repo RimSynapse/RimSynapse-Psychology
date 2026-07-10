@@ -42,6 +42,8 @@ You MUST analyze the 'Tags' attached to their recent memories. If you see recurr
 
 You must also provide an 'AbandonmentRiskScore' (0-100) representing how likely they are to permanently abandon the colony (or rebel if a slave). High survival skills and low satisfaction increase this risk.
 
+Finally, output a 'SocialAdjustments' object reflecting changes in their Trust (-100 to +100) and Familiarity (0 to 100) with other colonists based on recent events. Use the colonist's short name as the key. Trust offsets should be between -15 and +15. Familiarity offsets should be positive (0 to +10).
+
 You MUST respond strictly in valid JSON format. Do not include markdown formatting or extra text.
 {
   ""Relationships"": ""1-2 sentences..."",
@@ -52,7 +54,13 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
   ""Fulfillment"": ""1-2 sentences..."",
   ""Arrogance"": ""1-2 sentences..."",
   ""Dedication"": ""1-2 sentences..."",
-  ""AbandonmentRiskScore"": 0
+  ""AbandonmentRiskScore"": 0,
+  ""SocialAdjustments"": {
+    ""ColonistName1"": {
+      ""trustOffset"": 2.5,
+      ""familiarityOffset"": 1.0
+    }
+  }
 }";
 
             string recentEvents = dailyEvents == null || dailyEvents.Count == 0 
@@ -76,6 +84,38 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
             NeedDef suppressionDef = DefDatabase<NeedDef>.GetNamedSilentFail("Suppression");
             string suppression = (pawn.IsSlave && suppressionDef != null) ? $"\nSuppression: {pawn.needs?.TryGetNeed(suppressionDef)?.CurLevelPercentage:P0}" : "";
 
+            // Initialize missing colonists in social network
+            if (pawn.Map != null)
+            {
+                foreach (Pawn p in pawn.Map.mapPawns.FreeColonists)
+                {
+                    if (p != pawn && !pawnComp.socialNetwork.ContainsKey(p.GetUniqueLoadID()))
+                    {
+                        pawnComp.socialNetwork[p.GetUniqueLoadID()] = new RimSynapse.Psychology.Models.SocialRecord();
+                    }
+                }
+            }
+
+            string socialNetworkStr = "None";
+            if (pawnComp.socialNetwork.Count > 0)
+            {
+                var allPawns = (pawn.Map?.mapPawns?.AllPawnsSpawned ?? Enumerable.Empty<Pawn>()).Concat(Find.WorldPawns.AllPawnsAliveOrDead);
+                var socialLines = new List<string>();
+                foreach (var kvp in pawnComp.socialNetwork)
+                {
+                    Pawn target = allPawns.FirstOrDefault(p => p.GetUniqueLoadID() == kvp.Key);
+                    if (target != null)
+                    {
+                        int affinity = target.relations != null ? pawn.relations.OpinionOf(target) : 0;
+                        socialLines.Add($"- {target.Name.ToStringShort}: Trust {kvp.Value.trust:F0}, Familiarity {kvp.Value.familiarity:F0}, Affinity {affinity}");
+                    }
+                }
+                if (socialLines.Count > 0)
+                {
+                    socialNetworkStr = string.Join("\n", socialLines);
+                }
+            }
+
             string userMessage = $@"Patient Name: {pawn.Name.ToStringShort}
 Status: {statusText}
 Colony Size: {colonySize}
@@ -83,6 +123,8 @@ Time as Colonist: {timeAsColonist:F1} days
 Survival Stats: Melee {melee}, Shooting {shooting}, Medicine {medicine}, Lifetime Human Kills: {lifetimeKills}, Damage Taken: {damageTaken:F0}
 Average Mood Today: {averageMood:F2}{suppression}
 Psychological Burdens (Sensitivity): {lifetimeBurdens}
+Current Social Network (Trust, Familiarity, Affinity):
+{socialNetworkStr}
 Recent Memories:
 {recentEvents}";
 
@@ -110,7 +152,34 @@ Recent Memories:
                             {
                                 foreach (var kvp in parsed)
                                 {
-                                    if (kvp.Key == "AbandonmentRiskScore")
+                                    if (kvp.Key == "SocialAdjustments" && kvp.Value is Newtonsoft.Json.Linq.JObject socialObj)
+                                    {
+                                        var allPawns = (pawn.Map?.mapPawns?.AllPawnsSpawned ?? Enumerable.Empty<Pawn>()).Concat(Find.WorldPawns.AllPawnsAliveOrDead);
+                                        foreach (var property in socialObj.Properties())
+                                        {
+                                            string targetName = property.Name;
+                                            var offsets = property.Value as Newtonsoft.Json.Linq.JObject;
+                                            if (offsets != null)
+                                            {
+                                                Pawn targetPawn = allPawns.FirstOrDefault(p => p.Name != null && p.Name.ToStringShort.Equals(targetName, StringComparison.OrdinalIgnoreCase));
+                                                if (targetPawn != null)
+                                                {
+                                                    string loadId = targetPawn.GetUniqueLoadID();
+                                                    if (!pawnComp.socialNetwork.ContainsKey(loadId))
+                                                    {
+                                                        pawnComp.socialNetwork[loadId] = new RimSynapse.Psychology.Models.SocialRecord();
+                                                    }
+                                                    
+                                                    float trustOff = (float?)offsets["trustOffset"] ?? 0f;
+                                                    float famOff = (float?)offsets["familiarityOffset"] ?? 0f;
+                                                    
+                                                    pawnComp.socialNetwork[loadId].trust = UnityEngine.Mathf.Clamp(pawnComp.socialNetwork[loadId].trust + trustOff, -100f, 100f);
+                                                    pawnComp.socialNetwork[loadId].familiarity = UnityEngine.Mathf.Clamp(pawnComp.socialNetwork[loadId].familiarity + famOff, 0f, 100f);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else if (kvp.Key == "AbandonmentRiskScore")
                                     {
                                         int riskScore = Convert.ToInt32(kvp.Value);
                                         // Trigger abandonment state if risk is extremely high and they are a free colonist
