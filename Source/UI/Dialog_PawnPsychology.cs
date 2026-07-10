@@ -14,7 +14,8 @@ namespace RimSynapse.Psychology.UI
         private enum PsychologyTab
         {
             Profile,
-            Memories
+            Memories,
+            SocialNetwork
         }
 
         private Pawn pawn;
@@ -23,6 +24,8 @@ namespace RimSynapse.Psychology.UI
         
         private Vector2 memoriesScrollPosition = Vector2.zero;
         private Vector2 profileScrollPosition = Vector2.zero;
+        private Vector2 socialScrollPosition = Vector2.zero;
+        private Dictionary<string, Pawn> cachedTrustPawns = null;
         
         public override Vector2 InitialSize => new Vector2(650f, 750f);
 
@@ -76,7 +79,8 @@ namespace RimSynapse.Psychology.UI
             List<TabRecord> tabs = new List<TabRecord>
             {
                 new TabRecord("Psychological Profile", () => currentTab = PsychologyTab.Profile, currentTab == PsychologyTab.Profile),
-                new TabRecord("Memories", () => currentTab = PsychologyTab.Memories, currentTab == PsychologyTab.Memories)
+                new TabRecord("Memories", () => currentTab = PsychologyTab.Memories, currentTab == PsychologyTab.Memories),
+                new TabRecord("Social Network", () => currentTab = PsychologyTab.SocialNetwork, currentTab == PsychologyTab.SocialNetwork)
             };
             
             TabDrawer.DrawTabs(tabRect, tabs, 200f);
@@ -91,6 +95,9 @@ namespace RimSynapse.Psychology.UI
                     break;
                 case PsychologyTab.Memories:
                     DrawMemoriesTab(contentRect);
+                    break;
+                case PsychologyTab.SocialNetwork:
+                    DrawSocialNetworkTab(contentRect);
                     break;
             }
         }
@@ -230,6 +237,120 @@ namespace RimSynapse.Psychology.UI
                 GUI.color = Color.white;
 
                 currentEntryY += textHeight + 10f;
+            }
+            
+            Widgets.EndScrollView();
+        }
+
+        private void DrawSocialNetworkTab(Rect rect)
+        {
+            var pawnComp = pawn.TryGetComp<SynapsePawnComp>();
+            if (pawnComp == null || pawnComp.socialNetwork == null || pawnComp.socialNetwork.Count == 0)
+            {
+                Widgets.Label(rect, "No social relationships recorded yet.");
+                return;
+            }
+
+            if (cachedTrustPawns == null)
+            {
+                cachedTrustPawns = new Dictionary<string, Pawn>();
+                var allPawns = (pawn.Map?.mapPawns?.AllPawnsSpawned ?? Enumerable.Empty<Pawn>())
+                    .Concat(Find.WorldPawns.AllPawnsAliveOrDead);
+                foreach (var kvp in pawnComp.socialNetwork)
+                {
+                    Pawn target = allPawns.FirstOrDefault(p => p.GetUniqueLoadID() == kvp.Key);
+                    if (target != null) cachedTrustPawns[kvp.Key] = target;
+                }
+            }
+
+            float viewHeight = 0f;
+            foreach (var kvp in pawnComp.socialNetwork)
+            {
+                viewHeight += 60f;
+                if (kvp.Value.relationshipMemories.Count > 0)
+                {
+                    string mem = kvp.Value.relationshipMemories.Last();
+                    viewHeight += Text.CalcHeight($"\"{mem}\"", rect.width - 90f) + 10f;
+                }
+            }
+
+            Rect viewRect = new Rect(0f, 0f, rect.width - 20f, viewHeight);
+            
+            Widgets.BeginScrollView(rect, ref socialScrollPosition, viewRect);
+            
+            float curY = 0f;
+            foreach (var kvp in pawnComp.socialNetwork)
+            {
+                string loadId = kvp.Key;
+                var record = kvp.Value;
+                
+                cachedTrustPawns.TryGetValue(loadId, out Pawn targetPawn);
+                
+                Rect entryRect = new Rect(0f, curY, viewRect.width, 50f);
+                
+                if (targetPawn != null)
+                {
+                    Rect portraitRect = new Rect(0f, curY, 50f, 50f);
+                    GUI.DrawTexture(portraitRect, PortraitsCache.Get(targetPawn, new Vector2(50f, 50f), Rot4.South));
+                    
+                    Rect nameRect = new Rect(60f, curY + 5f, 200f, 20f);
+                    Text.Font = GameFont.Small;
+                    Widgets.Label(nameRect, targetPawn.Name.ToStringShort);
+                }
+                else
+                {
+                    Rect nameRect = new Rect(60f, curY + 5f, 200f, 20f);
+                    Text.Font = GameFont.Small;
+                    Widgets.Label(nameRect, $"Unknown ({loadId})");
+                }
+                
+                // Get Affinity (Opinion)
+                int affinity = targetPawn != null && targetPawn.relations != null ? pawn.relations.OpinionOf(targetPawn) : 0;
+                
+                // Draw Metrics
+                Text.Font = GameFont.Tiny;
+                
+                // Trust
+                Rect trustRect = new Rect(250f, curY + 5f, 100f, 20f);
+                if (record.trust >= 50) GUI.color = Color.green;
+                else if (record.trust >= 10) GUI.color = new Color(0.6f, 0.9f, 0.6f);
+                else if (record.trust > -10) GUI.color = Color.white;
+                else if (record.trust > -50) GUI.color = new Color(0.9f, 0.6f, 0.6f);
+                else GUI.color = Color.red;
+                Widgets.Label(trustRect, $"Trust: {record.trust:F0}");
+                
+                // Familiarity
+                Rect famRect = new Rect(360f, curY + 5f, 100f, 20f);
+                GUI.color = new Color(0.6f + (record.familiarity/100f)*0.4f, 0.6f + (record.familiarity/100f)*0.4f, 1f);
+                Widgets.Label(famRect, $"Familiarity: {record.familiarity:F0}");
+                
+                // Affinity
+                Rect affRect = new Rect(470f, curY + 5f, 100f, 20f);
+                if (affinity >= 50) GUI.color = Color.green;
+                else if (affinity >= 10) GUI.color = new Color(0.6f, 0.9f, 0.6f);
+                else if (affinity > -10) GUI.color = Color.white;
+                else if (affinity > -50) GUI.color = new Color(0.9f, 0.6f, 0.6f);
+                else GUI.color = Color.red;
+                Widgets.Label(affRect, $"Affinity: {affinity}");
+                
+                GUI.color = Color.white;
+                Text.Font = GameFont.Small;
+                
+                float extraHeight = 0f;
+                if (record.relationshipMemories.Count > 0)
+                {
+                    string mem = record.relationshipMemories.Last();
+                    float memHeight = Text.CalcHeight($"\"{mem}\"", viewRect.width - 70f);
+                    Rect memRect = new Rect(60f, curY + 25f, viewRect.width - 70f, memHeight);
+                    Text.Font = GameFont.Tiny;
+                    GUI.color = new Color(0.8f, 0.8f, 0.8f);
+                    Widgets.Label(memRect, $"\"{mem}\"");
+                    GUI.color = Color.white;
+                    Text.Font = GameFont.Small;
+                    extraHeight = memHeight + 10f;
+                }
+                
+                curY += 60f + extraHeight;
             }
             
             Widgets.EndScrollView();

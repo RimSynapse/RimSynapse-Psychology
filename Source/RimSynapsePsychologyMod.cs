@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Verse;
 using RimWorld;
@@ -19,6 +19,18 @@ namespace RimSynapse.Psychology
             Settings = GetSettings<RimSynapsePsychologySettings>();
             var harmony = new Harmony("RimSynapse.Psychology");
             harmony.PatchAll();
+            
+            // Manual Patch for Funeral (Ideology only)
+            var funeralType = AccessTools.TypeByName("RimWorld.RitualOutcomeEffectWorker_Funeral");
+            if (funeralType != null)
+            {
+                var original = AccessTools.Method(funeralType, "Apply");
+                var postfix = AccessTools.Method(typeof(Patches.Patch_Funeral_Apply), "Postfix");
+                if (original != null && postfix != null)
+                {
+                    harmony.Patch(original, null, new HarmonyMethod(postfix));
+                }
+            }
             
             // Register with Core
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
@@ -64,10 +76,21 @@ namespace RimSynapse.Psychology
                     Description = "Generates AI backstories for all faction leaders (World VIPs). Runs after faction history to use it as context.",
                     Priority = 4, // Below colonist tasks (8, 5) and faction history (6)
                     Weight = 1.5f,
-                    CooldownTicks = 5000 // Short cooldown — iterate through leaders quickly
+                    CooldownTicks = 5000 // Short cooldown â€” iterate through leaders quickly
                 });
             
-            Log.Message("[RimSynapse-Psychology] Mod initialized.");
+            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_RelationshipEvaluation",
+                (System.Func<bool>)API.SynapsePsychology.TriggerRelationshipEvaluation,
+                new RimSynapse.Internal.OpportunisticTaskConfig
+                {
+                    Label = "Relationship Evaluation",
+                    Description = "Generates LLM relationship memories between pawns based on high familiarity or trust changes.",
+                    Priority = 3,
+                    Weight = 1.0f,
+                    CooldownTicks = 15000
+                });
+            
+            RimSynapse.SynapseLog.Info("psychology", "[RimSynapse-Psychology] Mod initialized.");
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -76,7 +99,7 @@ namespace RimSynapse.Psychology
             listingStandard.Begin(inRect);
             
             listingStandard.Label("Note: Debug logging is now globally configured in RimSynapse Core settings.");
-            // ── Mechanics ───────────────────────────────────────────
+            // â”€â”€ Mechanics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             listingStandard.Label("Mechanics");
             listingStandard.GapLine();
 
@@ -126,7 +149,8 @@ namespace RimSynapse.Psychology
                 }
             }
             
-            Log.Message($"[RimSynapse-Psychology] Injected SynapsePawnComp into {injectedCount} humanlike ThingDefs.");
+            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Injected SynapsePawnComp into {injectedCount} humanlike ThingDefs.");
         }
     }
 }
+

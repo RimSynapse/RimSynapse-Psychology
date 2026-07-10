@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Verse;
 using Verse.AI;
 using RimWorld;
@@ -10,7 +10,7 @@ namespace RimSynapse.Psychology.MentalStates
     {
         protected override Job TryGiveJob(Pawn pawn)
         {
-            Log.Message($"[RimSynapse-Psychology] Euphoria AI invoked for {pawn.Name}.");
+            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Euphoria AI invoked for {pawn.Name}.");
 
             // 1. Try to find the biggest reachable fire on the map
             var fires = pawn.Map.listerThings.ThingsOfDef(ThingDefOf.Fire)
@@ -25,14 +25,14 @@ namespace RimSynapse.Psychology.MentalStates
                     // Run directly onto the fire
                     if (pawn.Position != biggestFire.Position)
                     {
-                        Log.Message($"[RimSynapse-Psychology] {pawn.Name} running into fire at {biggestFire.Position}.");
+                        RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] {pawn.Name} running into fire at {biggestFire.Position}.");
                         Job gotoJob = JobMaker.MakeJob(JobDefOf.Goto, biggestFire.Position);
                         gotoJob.locomotionUrgency = LocomotionUrgency.Sprint;
                         return gotoJob;
                     }
                     else
                     {
-                        Log.Message($"[RimSynapse-Psychology] {pawn.Name} standing in fire.");
+                        RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] {pawn.Name} standing in fire.");
                         // Already in the fire!
                         return JobMaker.MakeJob(JobDefOf.Wait_Wander);
                     }
@@ -67,16 +67,17 @@ namespace RimSynapse.Psychology.MentalStates
                 
                 if (targetAnimal != null)
                 {
-                    Log.Message($"[RimSynapse-Psychology] {pawn.Name} charging {targetAnimal.Name?.ToStringFull ?? targetAnimal.Label} (Target CP: {targetCombatPower:F1}, Animal CP: {targetAnimal.kindDef.combatPower:F1})");
+                    RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] {pawn.Name} charging {targetAnimal.Name?.ToStringFull ?? targetAnimal.Label} (Target CP: {targetCombatPower:F1}, Animal CP: {targetAnimal.kindDef.combatPower:F1})");
                     Job attackJob = JobMaker.MakeJob(JobDefOf.AttackMelee, targetAnimal);
                     attackJob.locomotionUrgency = LocomotionUrgency.Sprint;
                     return attackJob;
                 }
             }
 
-            Log.Message($"[RimSynapse-Psychology] {pawn.Name} couldn't find fire or animal, wandering wildly.");
+            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] {pawn.Name} couldn't find fire or animal, wandering wildly.");
             // 3. Fallback to just wandering wildly
             return JobMaker.MakeJob(JobDefOf.Wait_Wander);
         }
     }
 }
+
