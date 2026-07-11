@@ -72,7 +72,7 @@ You MUST respond strictly in valid JSON format:
             }
 
             // Use priority -1 so it stays at the absolute bottom of the queue and yields to real events
-            var options = new ChatOptions { priority = 3 };
+            var options = new ChatOptions { priority = 3, requestName = "Opportunistic Memory", targetName = "Multiple Pawns" };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -197,7 +197,7 @@ Childhood: ""{childhoodTitle}""
 Description: ""{childhoodDesc}""
 Skills: {skillBonuses}";
 
-            var options = new ChatOptions { priority = 2 };
+            var options = new ChatOptions { priority = 2, requestName = "Visitor Childhood", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -299,7 +299,7 @@ Adulthood: ""{adulthoodTitle}""
 Description: ""{adulthoodDesc}""
 Skills: {skillBonuses}{hometownContext}{childhoodContext}";
 
-            var options = new ChatOptions { priority = 1 };
+            var options = new ChatOptions { priority = 1, requestName = "Visitor Adulthood", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -536,7 +536,7 @@ Skill Bonuses from Childhood: {skillBonuses}
 
 Write a vivid childhood memory for this future leader.";
 
-            var options = new ChatOptions { priority = 3 };
+            var options = new ChatOptions { priority = 3, requestName = "Leader Childhood", targetName = leader.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -656,7 +656,7 @@ Skill Bonuses from Adulthood: {skillBonuses}
 
 Write their rise-to-power memory.";
 
-            var options = new ChatOptions { priority = 2 };
+            var options = new ChatOptions { priority = 2, requestName = "Leader Rise to Power", targetName = leader.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -758,7 +758,7 @@ Traits: {traits}{hometownContext}
 
 {memoriesContext}Synthesize their permanent psychological profile.";
 
-            var options = new ChatOptions { priority = 1 };
+            var options = new ChatOptions { priority = 1, requestName = "Leader Personality", targetName = leader.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -905,7 +905,7 @@ You MUST respond strictly in valid JSON format:
                                  $"Their Name: {pawnB.Name.ToStringShort}\nTheir Traits: {pawnB.story?.traits?.allTraits.Select(t => t.Label).ToCommaList() ?? "None"}\nTheir Burdens: {burdensB}\n\n" +
                                  $"Familiarity (0-100): {sharedRecord.familiarity:F0}\nTrust (-100 to 100): {sharedRecord.trust:F0}";
 
-            var options = new ChatOptions { priority = 3 };
+            var options = new ChatOptions { priority = 3, requestName = "Relationship Evaluation", targetName = $"{pawnA.Name.ToStringShort} -> {pawnB.Name.ToStringShort}" };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,

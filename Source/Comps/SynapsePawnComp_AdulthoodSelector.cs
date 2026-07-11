@@ -96,7 +96,7 @@ Traits: {traits}{hometownContext}
 
 Select the best-fitting adulthood backstory by number.";
 
-            var options = new ChatOptions { priority = 5 }; // High priority — this is a milestone event
+            var options = new ChatOptions { priority = 5, requestName = "Select Adulthood Backstory", targetName = pawn.Name.ToStringShort }; // High priority — this is a milestone event
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,

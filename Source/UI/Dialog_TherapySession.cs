@@ -142,7 +142,7 @@ namespace RimSynapse.Psychology.UI
                     }
                     waitingForLLM = false;
                 },
-                new RimSynapse.ChatOptions { priority = 1 }
+                new RimSynapse.ChatOptions { priority = 1, requestName = "Therapy Suggestion", targetName = initiator.NameShortColored }
             );
         }
 
@@ -168,7 +168,7 @@ namespace RimSynapse.Psychology.UI
                     }
                     waitingForLLM = false;
                 },
-                new RimSynapse.ChatOptions { priority = 1 }
+                new RimSynapse.ChatOptions { priority = 1, requestName = "Therapy Response", targetName = target.NameShortColored }
             );
         }
 

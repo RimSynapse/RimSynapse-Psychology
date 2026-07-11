@@ -142,7 +142,7 @@ Current Social Network (Trust, Familiarity, Affinity):
 Recent Memories:
 {recentEvents}";
 
-            var options = new ChatOptions { priority = isOpportunistic ? -1 : 0 };
+            var options = new ChatOptions { priority = isOpportunistic ? -1 : 0, requestName = "Daily Psychology Review", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -278,7 +278,7 @@ Target (Patient): {target.NameShortColored}
 Transcript:
 {fullTranscript}";
 
-            var options = new ChatOptions { priority = -1 };
+            var options = new ChatOptions { priority = -1, requestName = "Therapy Summary", targetName = $"{initiator.NameShortColored} -> {target.NameShortColored}" };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
