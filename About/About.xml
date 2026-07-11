@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
     <name>RimSynapse - Psychology</name>
     <author>RimSynapse Team</author>
@@ -50,16 +50,18 @@ RimSynapse Psychology leverages the power of Local LLMs to completely overhaul h
 
 [h2]Mental States[/h2]
 [list]
-[*] [b]Extreme Mental Breaks:[/b] Introduces realistic breaks like "Suicidal (Burn)", "Suicidal (Starvation)", and euphoric "Reckless" behaviors. These are rare, trait-driven, and highly impactful.
+[*] [b]AI-Driven Trait Evolution:[/b] The LLM can add or remove vanilla traits over time based on a pawn's experiences, sending the player a letter explaining the psychological reasoning.
 [*] [b]Functional Depression:[/b] Pawns experiencing extreme despair may still go to work and sleep, but completely refuse to eat, requiring immediate intervention before they fade away.
 [*] [b]Abandonment Risk:[/b] The nightly evaluation produces an Abandonment Risk Score (0-100). If it exceeds 90, the pawn may permanently leave the colony.
-[*] [b]AI-Driven Trait Evolution:[/b] The LLM can add or remove vanilla traits over time based on a pawn's experiences, sending the player a letter explaining the psychological reasoning.
 [*] [b]The "Snap Out Of It" Mechanic:[/b] Driven by the pawn's traits, survival instinct can override extreme mental states if they sustain too much pain or malnutrition.
+[*] [b]Under Development (Debug Only):[/b] We are actively experimenting with highly complex psychological states, including "Suicidal", "PTSD Trauma Triggers", and "Reckless Euphoria". These are currently [b]disabled[/b] in normal gameplay but exist in the mod for testing via Debug mode.
 [/list]
 
-[h2]Interactive UI[/h2]
+[h2]Interactive Psychology[/h2]
 [list]
-[*] [b]Psychology Tab:[/b] Open the new Psychology gizmo on any colonist to read their inner thoughts, backstory, memories, and clinical assessment.
+[*] [b]Player-Driven Therapy Sessions:[/b] Direct pawns to counsel one another on couches or chairs. The AI can autonomously generate a flowing dialogue between the two pawns based on their intelligence and ideologies, or you can step in with a "Guiding Hand" to type your own responses. 
+[*] [b]Psychological Recruitment:[/b] Use the Therapy system to engage in deep conversation with prisoners, visitors, and faction leaders to organically sway their allegiance or ideology.
+[*] [b]Psychology Tab:[/b] Open the new Psychology gizmo on any colonist to read their inner thoughts, backstory, memories, clinical assessment, and full transcripts of recent therapy sessions.
 [*] [b]Visitor Backstories:[/b] Important NPCs (faction leaders, prisoners, royalty, family members) also get LLM-generated backstories during idle processing time.
 [/list]
 

@@ -108,10 +108,23 @@ namespace RimSynapse.Psychology.Managers
                         pawn.mindState.mentalStateHandler.TryStartMentalState(DefDatabase<MentalStateDef>.GetNamed("Synapse_EuphoricReckless"), "Euphoria");
                     }
                 }
+
+                // Sustained high mood triggers opportunistic memory and review
+                if (comp.lastExtremePositiveTick < 0) 
+                {
+                    comp.lastExtremePositiveTick = Find.TickManager.TicksGame;
+                }
+                else if (Find.TickManager.TicksGame - comp.lastExtremePositiveTick > 60000)
+                {
+                    comp.lastExtremePositiveTick = Find.TickManager.TicksGame; // Reset timer
+                    comp.isAwaitingJournalUpdate = true; // Queues a daily psychology review
+                    RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "SustainedJoy", "Sustained high mood queued for psychological review.");
+                }
             }
             else
             {
                 comp.isEuphoric = false;
+                comp.lastExtremePositiveTick = -1;
             }
         }
     }

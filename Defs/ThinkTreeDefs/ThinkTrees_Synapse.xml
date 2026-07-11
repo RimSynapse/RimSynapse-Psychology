@@ -14,6 +14,17 @@
         <li Class="RimSynapse.Psychology.MentalStates.JobGiver_Homicidal" />
       </subNodes>
     </li>
+
+    <!-- Trauma Trigger (PTSD) -->
+    <li Class="ThinkNode_ConditionalMentalState">
+      <state>Synapse_TraumaTrigger</state>
+      <subNodes>
+        <!-- First tries to shoot wildly -->
+        <li Class="RimSynapse.Psychology.MentalStates.JobGiver_TraumaShoot" />
+        <!-- Then cowers -->
+        <li Class="RimSynapse.Psychology.MentalStates.JobGiver_TraumaCower" />
+      </subNodes>
+    </li>
     
     <!-- Abandon Colony -->
     <li Class="ThinkNode_ConditionalMentalState">

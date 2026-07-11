@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Verse;
@@ -42,16 +42,25 @@ namespace RimSynapse.Psychology.API
             }
 
             bool changed = false;
+            var comp = pawn.TryGetComp<SynapsePawnComp>();
 
             if (add && !pawn.story.traits.HasTrait(traitDef))
             {
                 pawn.story.traits.GainTrait(new Trait(traitDef));
+                if (comp != null)
+                {
+                    comp.dynamicTraits.Add(new RimSynapse.Psychology.Models.DynamicTraitRecord(traitDef, Find.TickManager.TicksGame, aiReasoning));
+                }
                 changed = true;
             }
             else if (!add && pawn.story.traits.HasTrait(traitDef))
             {
                 var trait = pawn.story.traits.GetTrait(traitDef);
                 pawn.story.traits.allTraits.Remove(trait);
+                if (comp != null)
+                {
+                    comp.dynamicTraits.RemoveAll(x => x.traitDef == traitDef);
+                }
                 changed = true;
             }
 

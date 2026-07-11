@@ -9,6 +9,14 @@
     <intensity>Minor</intensity>
   </MentalBreakDef>
 
+  <!-- Trauma Break -->
+  <MentalBreakDef>
+    <defName>Synapse_TraumaTriggerBreak</defName>
+    <mentalState>Synapse_TraumaTrigger</mentalState>
+    <baseCommonality>0</baseCommonality> <!-- Only triggered by LLM -->
+    <intensity>Extreme</intensity>
+  </MentalBreakDef>
+
   <!-- Suicidal Breaks -->
   <MentalBreakDef>
     <defName>Synapse_SuicidalAntagonizeBreak</defName>

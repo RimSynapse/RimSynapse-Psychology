@@ -73,6 +73,34 @@ namespace RimSynapse.Psychology.UI
             Text.Anchor = TextAnchor.UpperLeft;
             Text.Font = GameFont.Small;
 
+            // Force Review Button
+            Rect forceReviewRect = new Rect(inRect.width - 160f, 7f, 150f, 30f);
+            if (Widgets.ButtonText(forceReviewRect, "Force Psych Review"))
+            {
+                var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+                var pawnComp = pawn.TryGetComp<SynapsePawnComp>();
+                
+                if (coreComp != null && pawnComp != null)
+                {
+                    float mood = pawn.needs?.mood?.CurLevelPercentage ?? 0.5f;
+                    
+                    // Filter memories from the last 24 hours (60000 ticks)
+                    var recentEvents = coreComp.memories
+                        .Where(m => Find.TickManager.TicksAbs - m.absTick < 60000)
+                        .ToList();
+                        
+                    Messages.Message($"Queueing immediate psychological review for {pawn.LabelShort}...", MessageTypeDefOf.NeutralEvent, false);
+                    
+                    RimSynapse.Psychology.API.SynapsePsychology.QueueDailyPsychologyReview(pawn, mood, recentEvents, (success) => {
+                        if (success) 
+                        {
+                            Messages.Message($"Completed psychological review for {pawn.LabelShort}.", MessageTypeDefOf.PositiveEvent, false);
+                            pawnComp.lastJournalUpdateDay = GenDate.DaysPassed; // Reset cooldown
+                        }
+                    }, true);
+                }
+            }
+
             // Setup Tab space
             Rect tabRect = new Rect(0f, headerRect.yMax + 30f, inRect.width, inRect.height - headerRect.yMax - 30f);
             
