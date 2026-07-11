@@ -65,11 +65,13 @@
         Weight 8.5, 14 incidents"). This provides context without overloading the AI.
         [/list]
 
-        [h2]Mental States[/h2]
+        [h2]Mental States &amp; Personality[/h2]
         [list]
-        [*] [b]AI-Driven Trait Evolution:[/b] The LLM can add or remove vanilla traits over time
-        based on a pawn's experiences, sending the player a letter explaining the psychological
-        reasoning.
+        [*] [b]Dynamic Trait Injection:[/b] Colonists are not locked into the traits they spawned with. 
+        The LLM can dynamically inject or remove vanilla traits over time based on a pawn's unique experiences 
+        and accumulated memories. A peaceful farmer might gain [i]Bloodlust[/i] after surviving a brutal raid, 
+        or an optimist might become [i]Depressive[/i] after immense loss. A letter is sent to the player 
+        explaining the psychological reasoning behind every personality shift.
         [*] [b]Functional Depression:[/b] Pawns experiencing extreme despair may still go to work
         and sleep, but completely refuse to eat, requiring immediate intervention before they fade
         away.
