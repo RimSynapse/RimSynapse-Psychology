@@ -39,12 +39,6 @@ namespace RimSynapse.Psychology.Comps
             var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (coreComp == null) return;
 
-            if (!SynapseClient.IsOnline)
-            {
-                ticksToGenerateBackstory = 2500;
-                return;
-            }
-
             isGeneratingBackstory = true;
 
             // Step 1: Generate childhood memory
@@ -99,6 +93,7 @@ You MUST respond in valid JSON:
 }";
 
             string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Faction Background: {factionType}
 Childhood Backstory: ""{childhoodTitle}""
 Vanilla Description: ""{childhoodDesc}""
@@ -106,7 +101,7 @@ Skill Bonuses from Childhood: {skillBonuses}
 {(string.IsNullOrEmpty(disabledWork) ? "" : $"Disabled Work Types: {disabledWork}\n")}{factionContext}
 Write a vivid childhood memory grounded in these skills.";
 
-            var options = new ChatOptions { priority = 5, requestName = "Childhood Backstory", targetName = pawn.Name.ToStringShort };
+            var options = new ChatOptions { priority = 1, requestName = "Childhood Backstory", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -215,6 +210,7 @@ You MUST respond in valid JSON:
 }";
 
             string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Adulthood Backstory: ""{adulthoodTitle}""
 Vanilla Description: ""{adulthoodDesc}""
 Skill Bonuses from Adulthood: {skillBonuses}
@@ -222,7 +218,7 @@ Skill Bonuses from Adulthood: {skillBonuses}
 
 Write a vivid adulthood memory grounded in these skills.";
 
-            var options = new ChatOptions { priority = 4, requestName = "Adulthood Backstory", targetName = pawn.Name.ToStringShort };
+            var options = new ChatOptions { priority = 2, requestName = "Adulthood Backstory", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -321,6 +317,7 @@ You MUST respond in valid JSON:
 }";
 
             string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Age: {pawn.ageTracker?.AgeBiologicalYears ?? 0}
 Gender: {pawn.gender}
 Current Traits: {traits}
@@ -448,7 +445,17 @@ Current Traits: {traits}
             string title = "Backstory Discovered";
             string text = $"{pawn.Name.ToStringShort} has shared their backstory with you.\n\n" +
                           "Open their Psychology tab to learn more about their past and personality traits.";
-            Find.LetterStack.ReceiveLetter(title, text, LetterDefOf.NeutralEvent, pawn);
+
+            var letter = new RimSynapse.Psychology.UI.ChoiceLetter_OpenPsychology
+            {
+                def = LetterDefOf.NeutralEvent,
+                Label = title,
+                Text = text,
+                lookTargets = pawn,
+                targetPawn = pawn,
+                ID = Find.UniqueIDsManager.GetNextLetterID()
+            };
+            Find.LetterStack.ReceiveLetter(letter);
         }
 
         // ────────────────────────────────────────────────────────

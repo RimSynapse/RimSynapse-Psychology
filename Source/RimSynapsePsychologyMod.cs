@@ -68,17 +68,7 @@ namespace RimSynapse.Psychology
                     CooldownTicks = 5000 // Check frequently, since it only fires if a pawn is flagged
                 });
 
-            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_LeaderBackstory",
-                (System.Func<bool>)API.SynapsePsychology.TriggerLeaderBackstoryGeneration,
-                new RimSynapse.Internal.OpportunisticTaskConfig
-                {
-                    Label = "Leader Backstory",
-                    Description = "Generates AI backstories for all faction leaders (World VIPs). Runs after faction history to use it as context.",
-                    Priority = 4, // Below colonist tasks (8, 5) and faction history (6)
-                    Weight = 1.5f,
-                    CooldownTicks = 5000 // Short cooldown — iterate through leaders quickly
-                });
-            
+
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_RelationshipEvaluation",
                 (System.Func<bool>)API.SynapsePsychology.TriggerRelationshipEvaluation,
                 new RimSynapse.Internal.OpportunisticTaskConfig

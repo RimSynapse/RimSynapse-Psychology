@@ -8,11 +8,14 @@ using Verse.AI;
 
 namespace RimSynapse.Psychology.Patches
 {
-    [HarmonyPatch(typeof(FloatMenuMakerMap), "AddHumanlikeOrders")]
+    [HarmonyPatch(typeof(FloatMenuMakerMap), nameof(FloatMenuMakerMap.GetOptions))]
     public static class Patch_FloatMenuMakerMap_Interactions
     {
-        public static void Postfix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
+        public static void Postfix(List<Pawn> selectedPawns, Vector3 clickPos, ref List<FloatMenuOption> __result)
         {
+            if (selectedPawns == null || selectedPawns.Count != 1) return;
+            Pawn pawn = selectedPawns[0];
+
             if (pawn.Drafted || !pawn.IsColonistPlayerControlled) return;
 
             IntVec3 clickCell = IntVec3.FromVector3(clickPos);
@@ -29,7 +32,7 @@ namespace RimSynapse.Psychology.Patches
                         : "Attempt Recruitment / Conversion";
 
                     // Build float menu option
-                    opts.Add(new FloatMenuOption(label, () =>
+                    __result.Add(new FloatMenuOption(label, () =>
                     {
                         // Acceptance logic
                         bool accepted = true;

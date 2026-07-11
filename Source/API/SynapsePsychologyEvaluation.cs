@@ -114,7 +114,7 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
                     if (target != null)
                     {
                         int affinity = target.relations != null ? pawn.relations.OpinionOf(target) : 0;
-                        socialLines.Add($"- {target.Name.ToStringShort}: Trust {kvp.Value.trust:F0}, Familiarity {kvp.Value.familiarity:F0}, Affinity {affinity}");
+                        socialLines.Add($"- {target.Name.ToStringShort} ({target.gender}): Trust {kvp.Value.trust:F0}, Familiarity {kvp.Value.familiarity:F0}, Affinity {affinity}");
                     }
                 }
                 if (socialLines.Count > 0)
@@ -131,6 +131,7 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
             systemPrompt = systemPrompt.Replace("{DYNAMIC_TRAITS}", dynamicTraitsStr);
 
             string userMessage = $@"Patient Name: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Status: {statusText}
 Colony Size: {colonySize}
 Time as Colonist: {timeAsColonist:F1} days

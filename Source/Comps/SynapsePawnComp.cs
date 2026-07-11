@@ -29,7 +29,7 @@ namespace RimSynapse.Psychology.Comps
         // Track whether this pawn has had a backstory memory generated yet.
         // This helps queue LLM calls safely instead of freezing the game on spawn.
         public bool hasBackstoryMemory = false;
-        private int ticksToGenerateBackstory = 2500; // ~1 in-game hour delay to simulate LLM
+        private int ticksToGenerateBackstory = 0; // Fire immediately on first tick
 
         // Active AI-driven modifiers
         public BreakCategory breakCategory = BreakCategory.Default;
@@ -87,7 +87,7 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref wasAsleep, "wasAsleep", false);
             Scribe_Values.Look(ref lastExtremeNegativeTick, "lastExtremeNegativeTick", -1);
             Scribe_Values.Look(ref lastExtremePositiveTick, "lastExtremePositiveTick", -1);
-            Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 2500);
+            Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 0);
             Scribe_Values.Look(ref lastJournalUpdateDay, "lastJournalUpdateDay", -1);
             Scribe_Values.Look(ref isAwaitingJournalUpdate, "isAwaitingJournalUpdate", false);
             Scribe_Collections.Look(ref dynamicTraits, "dynamicTraits", LookMode.Deep);
@@ -106,6 +106,20 @@ namespace RimSynapse.Psychology.Comps
             {
                 if (medicalProfile == null) medicalProfile = new Dictionary<string, string>();
                 if (socialNetwork == null) socialNetwork = new Dictionary<string, SocialRecord>();
+            }
+        }
+
+        public override void PostSpawnSetup(bool respawningAfterLoad)
+        {
+            base.PostSpawnSetup(respawningAfterLoad);
+            
+            if (parent is Pawn pawn && !pawn.Dead)
+            {
+                // Queue backstory generation immediately on load if needed
+                if (!hasBackstoryMemory && pawn.Faction == Faction.OfPlayer && !isGeneratingBackstory)
+                {
+                    GenerateAIBackstory(pawn);
+                }
             }
         }
 

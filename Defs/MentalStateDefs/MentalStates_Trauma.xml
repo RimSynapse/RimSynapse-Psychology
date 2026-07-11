@@ -10,7 +10,6 @@
     <nameColor>(1,0.2,0.2)</nameColor>
     <colonistsOnly>true</colonistsOnly>
     <allowBeatfire>true</allowBeatfire>
-    <allowUserDrafting>false</allowUserDrafting>
     <minTicksBeforeRecovery>3000</minTicksBeforeRecovery>
     <recoveryMtbDays>0.1</recoveryMtbDays>
     <recoveryMessage>{0} has calmed down from their trauma trigger.</recoveryMessage>

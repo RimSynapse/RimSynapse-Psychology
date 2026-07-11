@@ -112,8 +112,8 @@ namespace RimSynapse.Psychology.UI
             Rect portraitRect = new Rect(rect.x, curY, 150f, 150f);
             GUI.DrawTexture(portraitRect, PortraitsCache.Get(pawn, new Vector2(150f, 150f), Rot4.South));
             
-            // Force Review Button (moved from header)
-            Rect forceReviewRect = new Rect(rect.width - 160f, curY, 150f, 30f);
+            // Force Review Button (moved below portrait)
+            Rect forceReviewRect = new Rect(rect.x, portraitRect.yMax + 10f, 150f, 30f);
             if (Widgets.ButtonText(forceReviewRect, "Force Psych Review"))
             {
                 var cc = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
@@ -162,7 +162,7 @@ namespace RimSynapse.Psychology.UI
             }
             GUI.color = Color.white;
             
-            curY = portraitRect.yMax + 30f;
+            curY = Mathf.Max(forceReviewRect.yMax + 30f, bulletY + 20f);
             
             Widgets.DrawLineHorizontal(rect.x, curY, rect.width);
             curY += 15f;
