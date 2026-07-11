@@ -115,11 +115,8 @@ namespace RimSynapse.Psychology.Comps
             
             if (parent is Pawn pawn && !pawn.Dead)
             {
-                // Queue backstory generation immediately on load if needed
-                if (!hasBackstoryMemory && pawn.Faction == Faction.OfPlayer && !isGeneratingBackstory)
-                {
-                    GenerateAIBackstory(pawn);
-                }
+                // We rely entirely on CompTick for backstory generation
+                // Calling PromptAsync during map loading can drop the request and get isGeneratingBackstory stuck.
             }
         }
 
