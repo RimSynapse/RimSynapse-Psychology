@@ -123,10 +123,12 @@ namespace RimSynapse.Psychology.Comps
             }
         }
 
-        public override void CompTickRare()
+        public override void CompTick()
         {
-            base.CompTickRare();
+            base.CompTick();
             
+            if (!parent.IsHashIntervalTick(250)) return;
+
             if (parent is Pawn pawn && pawn.Spawned && !pawn.Dead)
             {
                 // Async Backstory Stub
