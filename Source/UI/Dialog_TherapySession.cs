@@ -142,7 +142,7 @@ namespace RimSynapse.Psychology.UI
                     }
                     waitingForLLM = false;
                 },
-                new RimSynapse.Models.ChatOptions { priority = 1 }
+                new RimSynapse.ChatOptions { priority = 1 }
             );
         }
 
@@ -168,7 +168,7 @@ namespace RimSynapse.Psychology.UI
                     }
                     waitingForLLM = false;
                 },
-                new RimSynapse.Models.ChatOptions { priority = 1 }
+                new RimSynapse.ChatOptions { priority = 1 }
             );
         }
 

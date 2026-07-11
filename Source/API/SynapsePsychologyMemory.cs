@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Verse;
@@ -22,7 +22,7 @@ namespace RimSynapse.Psychology.API
             var comp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (comp == null)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Cannot add memory â€” SynapseCorePawnComp not found on {pawn.Name}.");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Cannot add memory — SynapseCorePawnComp not found on {pawn.Name}.");
                 return "";
             }
 
@@ -38,12 +38,12 @@ namespace RimSynapse.Psychology.API
             var comp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (comp == null)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Cannot add memory â€” SynapseCorePawnComp not found on {pawn.Name}.");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Cannot add memory — SynapseCorePawnComp not found on {pawn.Name}.");
                 return;
             }
 
             comp.memories.Add(memory);
-            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Memory added to {pawn.Name}: \"{memory.summary}\" (type: {memory.memoryType}, weight: {memory.weight})");
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Memory added to {pawn.Name}: \"{memory.summary}\" (type: {memory.memoryType}, weight: {memory.weight})");
         }
 
         /// <summary>
@@ -65,4 +65,5 @@ namespace RimSynapse.Psychology.API
         }
     }
 }
+
 

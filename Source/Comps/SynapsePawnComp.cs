@@ -150,7 +150,7 @@ namespace RimSynapse.Psychology.Comps
                             isAwaitingJournalUpdate = true;
                             savedAverageMood = moodSamples > 0 ? (dailyMoodAccumulator / moodSamples) : pawn.needs.mood.CurLevelPercentage;
                             
-                            RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "DailyReview", $"Flagged for Opportunistic Review. Asleep: {isAsleep}, Hour: {currentHour}, Avg Mood: {savedAverageMood:F2}");
+//
 
                             // Reset daily tracking immediately so we can start recording the next day
                             dailyMoodAccumulator = 0f;
@@ -237,3 +237,7 @@ namespace RimSynapse.Psychology.Comps
         }
     }
 }
+
+
+
+

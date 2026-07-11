@@ -48,15 +48,15 @@ namespace RimSynapse.Psychology.Patches
                                 // Insulted reaction if they are a visitor
                                 if (targetPawn.Faction != pawn.Faction && targetPawn.Faction != null)
                                 {
-                                    targetPawn.Faction.TryAffectGoodwillWith(pawn.Faction, -5, true, true, HistoryEventDefOf.MemberInsulted);
+                                    // targetPawn.Faction.TryAffectGoodwillWith(pawn.Faction, -5, true, true, HistoryEventDefOf.MemberInsulted);
                                     Messages.Message($"{targetPawn.LabelShort} was insulted by {pawn.LabelShort}'s approach.", MessageTypeDefOf.NegativeEvent, false);
                                 }
                             }
-                            else if (targetPawn.CurJob != null && targetPawn.CurJob.def.isCritical)
-                            {
-                                accepted = false;
-                                rejectReason = "Too busy";
-                            }
+                            // else if (targetPawn.CurJob != null && targetPawn.CurJob.def.isCritical)
+                            // {
+                            //     accepted = false;
+                            //     rejectReason = "Too busy";
+                            // }
                         }
 
                         if (!accepted)

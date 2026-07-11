@@ -246,18 +246,18 @@ Recent Memories:
                         }
                         catch (Exception ex)
                         {
-                            RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
+                            RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
                         }
                         
                         onComplete?.Invoke(true);
                     }
                     else
                     {
-                        RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
+                        RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
                         onComplete?.Invoke(false);
                     }
                     sw.Stop();
-                    RimSynapse.Utils.SynapseFileLogger.LogMetric("Psychology", pawn, "QueueDailyPsychologyReview", sw.ElapsedMilliseconds);
+//
                 },
                 options
             );
@@ -290,12 +290,12 @@ Transcript:
                     {
                         string summary = result.content.Trim();
                         // Store the summary in the core memory network or pawn comp for future context
-                        TriggerOpportunisticMemoryGeneration(target, $"Had a breakthrough in therapy with {initiator.LabelShort}: {summary}", "Therapy, Insight", null);
-                        TriggerOpportunisticMemoryGeneration(initiator, $"Provided therapy for {target.LabelShort}. Key takeaway: {summary}", "Therapy, Insight", null);
+                        // TriggerOpportunisticMemoryGeneration(target, $"Had a breakthrough in therapy with {initiator.LabelShort}: {summary}", "Therapy, Insight", null);
+                        // TriggerOpportunisticMemoryGeneration(initiator, $"Provided therapy for {target.LabelShort}. Key takeaway: {summary}", "Therapy, Insight", null);
                     }
                     else
                     {
-                        RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to summarize therapy session: {result.error}");
+                        RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to summarize therapy session: {result.error}");
                     }
                 },
                 options
@@ -303,4 +303,8 @@ Transcript:
         }
     }
 }
+
+
+
+
 

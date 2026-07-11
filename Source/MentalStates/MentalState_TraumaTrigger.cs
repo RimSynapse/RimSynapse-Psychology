@@ -4,7 +4,7 @@ using RimWorld;
 
 namespace RimSynapse.Psychology.MentalStates
 {
-    public class MentalState_TraumaTrigger : MentalState
+    public class MentalState_TraumaTrigger : Verse.AI.MentalState
     {
         public bool hasFiredShots = false;
         
@@ -14,9 +14,9 @@ namespace RimSynapse.Psychology.MentalStates
             Scribe_Values.Look(ref hasFiredShots, "hasFiredShots", false);
         }
         
-        public override void MentalStateTick()
+        public override void MentalStateTick(int delta)
         {
-            base.MentalStateTick();
+            base.MentalStateTick(delta);
             
             // Check if they dropped their weapon or it got destroyed
             if (!hasFiredShots && (pawn.equipment == null || pawn.equipment.Primary == null || !pawn.equipment.Primary.def.IsRangedWeapon))

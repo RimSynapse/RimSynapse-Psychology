@@ -1,4 +1,4 @@
-﻿using Verse;
+using Verse;
 using RimWorld;
 using RimSynapse.Psychology.Comps;
 using System.Collections.Generic;
@@ -57,7 +57,7 @@ namespace RimSynapse.Psychology.GameComponents
 
             if (addedCount > 0)
             {
-                RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Added SynapsePawnComp to {addedCount} existing pawns from a previous save.");
+                RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Added SynapsePawnComp to {addedCount} existing pawns from a previous save.");
             }
         }
 
@@ -103,4 +103,5 @@ namespace RimSynapse.Psychology.GameComponents
         }
     }
 }
+
 

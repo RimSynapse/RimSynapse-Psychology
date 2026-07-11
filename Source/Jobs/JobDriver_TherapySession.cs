@@ -66,7 +66,7 @@ namespace RimSynapse.Psychology.Jobs
                 Job waitJob = null;
                 if (SeatB != null && SeatB.def != null && SeatB.def.building != null && SeatB.def.building.isSittable)
                 {
-                    waitJob = JobMaker.MakeJob(JobDefOf.SitFacing, SeatB, pawn);
+                    waitJob = JobMaker.MakeJob(JobDefOf.Wait_Combat, 4000); // Replaced SitFacing
                     TargetPawn.jobs.StartJob(waitJob, JobCondition.InterruptForced);
                     
                     pawn.pather.StartPath(SeatA, PathEndMode.OnCell);
@@ -109,7 +109,7 @@ namespace RimSynapse.Psychology.Jobs
 
             chatToil.defaultCompleteMode = ToilCompleteMode.Delay;
             chatToil.defaultDuration = 5000; // ~2 in-game hours
-            chatToil.socialMode = RecordWorker_TimeGettingJoy.SocialMode.Normal;
+            // chatToil.socialMode = RecordWorker_TimeGettingJoy.SocialMode.Normal;
 
             chatToil.AddFinishAction(() => 
             {
@@ -133,7 +133,7 @@ namespace RimSynapse.Psychology.Jobs
         {
             SaveTranscriptAndEnd(finalLog);
             this.EndJobWith(JobCondition.Succeeded);
-            if (TargetPawn.jobs.curJob?.def == JobDefOf.Wait_Combat || TargetPawn.jobs.curJob?.def == JobDefOf.SitFacing)
+            if (TargetPawn.jobs.curJob?.def == JobDefOf.Wait_Combat) // Removed SitFacing check
             {
                 TargetPawn.jobs.EndCurrentJob(JobCondition.Succeeded);
             }

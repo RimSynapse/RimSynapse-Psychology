@@ -37,7 +37,7 @@ namespace RimSynapse.Psychology.API
             TraitDef traitDef = DefDatabase<TraitDef>.GetNamedSilentFail(traitDefName);
             if (traitDef == null)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Trait {traitDefName} not found.");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Trait {traitDefName} not found.");
                 return;
             }
 
@@ -91,7 +91,7 @@ namespace RimSynapse.Psychology.API
             MentalStateDef breakDef = DefDatabase<MentalStateDef>.GetNamedSilentFail(breakDefName);
             if (breakDef == null)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Predicted break {breakDefName} not found.");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Predicted break {breakDefName} not found.");
                 return;
             }
 
@@ -103,4 +103,5 @@ namespace RimSynapse.Psychology.API
         }
     }
 }
+
 

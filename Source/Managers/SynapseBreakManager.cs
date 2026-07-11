@@ -44,7 +44,7 @@ namespace RimSynapse.Psychology.Managers
             {
                 if (comp.lastExtremeNegativeTick < Find.TickManager.TicksGame - 100) 
                 {
-                    RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "ExtremeNegative", $"Crossed extreme threshold. Mood: {pawn.needs.mood.CurLevelPercentage:F2}");
+//
                 }
                 comp.lastExtremeNegativeTick = Find.TickManager.TicksGame;
 
@@ -97,14 +97,14 @@ namespace RimSynapse.Psychology.Managers
                     if (!comp.isEuphoric)
                     {
                         comp.isEuphoric = true;
-                        RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "EuphoriaStart", $"Entered Euphoria. Bipolar: {hasBipolar}, RecentNegative: {recentExtremeNegative}");
+//
                         // Trigger euphoria event or queue LLM for specific inspiration
                     }
                     
                     // MTB for reckless positive actions (e.g., 2 days)
                     if (Rand.MTBEventOccurs(2.0f, 60000f, 150f))
                     {
-                        RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "EuphoriaAction", $"Triggering Euphoric Reckless state.");
+//
                         pawn.mindState.mentalStateHandler.TryStartMentalState(DefDatabase<MentalStateDef>.GetNamed("Synapse_EuphoricReckless"), "Euphoria");
                     }
                 }
@@ -118,7 +118,7 @@ namespace RimSynapse.Psychology.Managers
                 {
                     comp.lastExtremePositiveTick = Find.TickManager.TicksGame; // Reset timer
                     comp.isAwaitingJournalUpdate = true; // Queues a daily psychology review
-                    RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "SustainedJoy", "Sustained high mood queued for psychological review.");
+//
                 }
             }
             else
@@ -129,3 +129,7 @@ namespace RimSynapse.Psychology.Managers
         }
     }
 }
+
+
+
+
