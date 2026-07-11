@@ -28,17 +28,19 @@ namespace RimSynapse.Psychology.API
             if (pawnComp == null || coreComp == null) return;
 
             string systemPrompt = @"You are a clinical psychologist in the RimWorld universe writing a formal medical evaluation.
-Based on this colonist's average mood today, their recent memories, their survival skills, and the state of the colony, assess the following 8 categories (write 1-2 sentences each):
-- Relationships (How they feel about others)
-- Trauma (Recent pain or historical suffering)
-- ShapingEvents (Major life events, e.g., wedding, birth, deaths)
-- Disorders (Psychological conditions or 'None')
-- Satisfaction (General contentment with their life)
-- Fulfillment (Whether their work aligns with their passions)
-- Arrogance (Ego related to their titles or skills)
-- Dedication (Are they discontent? Likely to rebel or leave?)
+Based on this colonist's average mood today, their recent memories, their survival skills, and the state of the colony, assess the following 9 categories (write 1-2 sentences each), and then provide a final Summary:
+- Mood (Emotional baseline, volatility, and general disposition)
+- Interpersonal (Attachment style, sociability, relationships with others)
+- Trauma (Lingering psychological effects of past horrors, deaths, or recent brutal raids)
+- Cognitive (Paranoia, grandiosity, irrational fears, or hyper-fixations)
+- Motivations (What keeps them going: duty, survival, greed, ideology?)
+- Identity (How they view themselves and their role within the colony)
+- Morality (Capacity for cruelty versus compassion: e.g., handling prisoners, organ harvesting)
+- Authority (Rebelliousness versus obedience to colony leadership and drafted orders)
+- Addiction (Psychological reliance on substances or specific comforts)
+- Summary (The final overarching clinical assessment and prognosis)
 
-You MUST analyze the 'Tags' attached to their recent memories. If you see recurring themes (e.g. 'Food', 'Starving', 'Safety'), you must explicitly address this growing concern in their Satisfaction or Dedication assessment.
+You MUST analyze the 'Tags' attached to their recent memories. If you see recurring themes (e.g. 'Food', 'Starving', 'Safety'), you must explicitly address this growing concern in your evaluation.
 
 You must also provide an 'AbandonmentRiskScore' (0-100) representing how likely they are to permanently abandon the colony (or rebel if a slave). High survival skills and low satisfaction increase this risk.
 
@@ -49,14 +51,16 @@ The colonist currently has the following dynamically added traits (which you pre
 
 You MUST respond strictly in valid JSON format. Do not include markdown formatting or extra text.
 {
-  ""Relationships"": ""1-2 sentences..."",
+  ""Mood"": ""1-2 sentences..."",
+  ""Interpersonal"": ""1-2 sentences..."",
   ""Trauma"": ""1-2 sentences..."",
-  ""ShapingEvents"": ""1-2 sentences..."",
-  ""Disorders"": ""1-2 sentences..."",
-  ""Satisfaction"": ""1-2 sentences..."",
-  ""Fulfillment"": ""1-2 sentences..."",
-  ""Arrogance"": ""1-2 sentences..."",
-  ""Dedication"": ""1-2 sentences..."",
+  ""Cognitive"": ""1-2 sentences..."",
+  ""Motivations"": ""1-2 sentences..."",
+  ""Identity"": ""1-2 sentences..."",
+  ""Morality"": ""1-2 sentences..."",
+  ""Authority"": ""1-2 sentences..."",
+  ""Addiction"": ""1-2 sentences..."",
+  ""Summary"": ""1-2 sentences..."",
   ""AbandonmentRiskScore"": 0,
   ""TraitChanges"": {
     ""Add"": [""Bloodlust""],

@@ -167,7 +167,7 @@ namespace RimSynapse.Psychology.UI
             Widgets.DrawLineHorizontal(rect.x, curY, rect.width);
             curY += 15f;
 
-            // Draw Clinical Assessment (Medical Form)
+            // Draw Daily Evaluation (Medical Form) Header
             Text.Font = GameFont.Medium;
             Widgets.Label(new Rect(rect.x, curY, rect.width, 30f), "Medical Evaluation");
             Text.Font = GameFont.Small;
@@ -176,14 +176,31 @@ namespace RimSynapse.Psychology.UI
             var pawnComp = pawn.TryGetComp<SynapsePawnComp>();
             if (pawnComp == null) return;
             
-            string[] formFields = { "Relationships", "Trauma", "ShapingEvents", "Disorders", "Satisfaction", "Fulfillment", "Arrogance", "Dedication" };
-            string[] formLabels = { "Relationships", "Trauma", "Shaping Events", "Disorders", "Satisfaction", "Fulfillment", "Arrogance", "Dedication" };
+            string[] formFields = { "Mood", "Interpersonal", "Trauma", "Cognitive", "Motivations", "Identity", "Morality", "Authority", "Addiction" };
+            string[] formLabels = { "Mood & Affect", "Interpersonal Dynamics", "Trauma & PTSD", "Cognitive Distortions", "Core Motivations", "Identity & Self-Image", "Moral Alignment", "Authority & Compliance", "Addiction & Dependencies" };
             
             float remainingHeight = rect.yMax - curY;
             Rect viewRect = new Rect(rect.x, curY, rect.width - 20f, 1000f); 
             Widgets.BeginScrollView(new Rect(rect.x, curY, rect.width, remainingHeight), ref profileScrollPosition, viewRect);
             
             float formY = curY;
+
+            // Draw Summary inside Scroll View (Top)
+            GUI.color = new Color(0.7f, 0.9f, 1f);
+            Rect headerRectAssess = new Rect(rect.x, formY, viewRect.width, 22f);
+            Widgets.Label(headerRectAssess, "<b>Summary / Prognosis</b>");
+            GUI.color = Color.white;
+            formY += 22f;
+
+            string initialAssessment = pawnComp.medicalProfile.TryGetValue("Summary", out string sVal) ? sVal : "Awaiting clinical assessment...";
+            float initAssessHeight = Text.CalcHeight(initialAssessment, viewRect.width);
+            Widgets.Label(new Rect(rect.x, formY, viewRect.width, initAssessHeight), initialAssessment);
+            formY += initAssessHeight + 10f;
+            
+            Widgets.DrawLineHorizontal(rect.x, formY, viewRect.width);
+            formY += 10f;
+
+            // Draw Daily Evaluation Fields
             for (int i = 0; i < formFields.Length; i++)
             {
                 string key = formFields[i];

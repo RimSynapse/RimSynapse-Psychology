@@ -61,11 +61,6 @@ namespace RimSynapse.Psychology.Comps
                 // Step 3: Skip to Personality Synthesis
                 GeneratePersonalityProfile(pawn, coreComp);
             }
-            else if (!hasAssessment)
-            {
-                // Step 4: Initial Clinical Assessment
-                GenerateClinicalAssessment(pawn, coreComp);
-            }
             else
             {
                 // Everything is somehow already generated
@@ -418,76 +413,18 @@ Current Traits: {traits}
                 {
                     RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse personality profile: {ex.Message}");
                 }
-            }
+            } // <-- RESTORED BRACE
 
-            // Chain to Step 4: Initial Clinical Assessment
-            GenerateClinicalAssessment(pawn, coreComp);
-        }
-
-        // ────────────────────────────────────────────────────────
-        //  Step 4: Clinical Assessment
-        // ────────────────────────────────────────────────────────
-
-        private void GenerateClinicalAssessment(Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
-        {
-            string systemPrompt = @"You are the Chief Medical Officer and Psychologist for a new colony on the Rim.
-Write a brief, clinical psychological intake assessment for this colonist.
-This is their baseline evaluation upon joining the colony. Focus on potential psychological risks, their core coping mechanisms, and any behavioral warnings the colony leadership should be aware of based on their life history and personality.
-
-RULES:
-- Write in a clinical, observational tone (third person).
-- Keep it to 2-3 concise sentences.
-- Focus on psychological risks, stress response, and interpersonal integration.
-- Reference their past experiences obliquely if relevant.
-
-You MUST respond in valid JSON:
-{
-  ""ClinicalAssessment"": ""Subject shows signs of hyper-vigilance due to past combat trauma, but demonstrates strong resilience. Recommend monitoring during prolonged periods of isolation.""
-}";
-
-            string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
-Age/Gender: {pawn.ageTracker?.AgeBiologicalYears ?? 0} {pawn.gender}
-
-Dynamic Backstory:
-{coreComp.dynamicBackstory}
-
-Write the initial clinical intake assessment.";
-
-            var options = new ChatOptions { priority = 4, requestName = "Initial Clinical Assessment", targetName = pawn.Name.ToStringShort };
-
-            SynapseClient.PromptAsync(
-                RimSynapsePsychologyMod.ModHandle,
-                systemPrompt,
-                userMessage,
-                result => OnClinicalAssessmentGenerated(result, pawn, coreComp),
-                options
-            );
-        }
-
-        private void OnClinicalAssessmentGenerated(ChatResult result, Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
-        {
-            if (result.success)
-            {
-                try
-                {
-                    string json = JsonHelper.ExtractJson(result.content);
-                    if (json != null)
-                    {
-                        var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-                        if (parsed != null && parsed.TryGetValue("ClinicalAssessment", out object assessmentObj))
-                        {
-                            coreComp.clinicalAssessment = assessmentObj.ToString();
-                            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Initial clinical assessment generated for {pawn.Name.ToStringShort}.");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse clinical assessment: {ex.Message}");
-                }
-            }
-
-            FinalizeBackstory(pawn, coreComp);
+            // Step 4: Daily Psychological Review (Generates the 10 medical fields, including Summary)
+            float mood = pawn.needs?.mood?.CurLevelPercentage ?? 0.5f;
+            var recentEvents = coreComp.memories
+                .Where(m => Find.TickManager.TicksAbs - m.absTick < 60000)
+                .ToList();
+                
+            RimSynapse.Psychology.API.SynapsePsychology.QueueDailyPsychologyReview(pawn, mood, recentEvents, (success) => {
+                // Done! The daily review now generates the Summary and all medical fields.
+                FinalizeBackstory(pawn, coreComp);
+            }, true); // isForced = true
         }
 
         // ────────────────────────────────────────────────────────
