@@ -41,8 +41,24 @@ namespace RimSynapse.Psychology.Comps
 
             isGeneratingBackstory = true;
 
-            // Step 1: Generate childhood memory
-            GenerateChildhoodMemory(pawn, coreComp);
+            bool hasChildhood = coreComp.memories.Any(m => m.memoryType == "BackstoryChildhood");
+            bool hasAdulthood = coreComp.memories.Any(m => m.memoryType == "BackstoryAdulthood");
+
+            if (!hasChildhood)
+            {
+                // Step 1: Generate childhood memory
+                GenerateChildhoodMemory(pawn, coreComp);
+            }
+            else if (!hasAdulthood && pawn.story?.Adulthood != null)
+            {
+                // Step 2: Skip childhood, go straight to adulthood
+                GenerateAdulthoodMemory(pawn, coreComp);
+            }
+            else
+            {
+                // Both exist (or adulthood not applicable), skip straight to Personality Synthesis
+                GeneratePersonalityProfile(pawn, coreComp);
+            }
         }
 
         // ────────────────────────────────────────────────────────
