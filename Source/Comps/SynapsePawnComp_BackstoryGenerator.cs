@@ -43,6 +43,8 @@ namespace RimSynapse.Psychology.Comps
 
             bool hasChildhood = coreComp.memories.Any(m => m.memoryType == "BackstoryChildhood");
             bool hasAdulthood = coreComp.memories.Any(m => m.memoryType == "BackstoryAdulthood");
+            bool hasPersonality = !string.IsNullOrEmpty(coreComp.personalitySummary);
+            bool hasAssessment = !string.IsNullOrEmpty(coreComp.clinicalAssessment);
 
             if (!hasChildhood)
             {
@@ -54,10 +56,20 @@ namespace RimSynapse.Psychology.Comps
                 // Step 2: Skip childhood, go straight to adulthood
                 GenerateAdulthoodMemory(pawn, coreComp);
             }
+            else if (!hasPersonality)
+            {
+                // Step 3: Skip to Personality Synthesis
+                GeneratePersonalityProfile(pawn, coreComp);
+            }
+            else if (!hasAssessment)
+            {
+                // Step 4: Initial Clinical Assessment
+                GenerateClinicalAssessment(pawn, coreComp);
+            }
             else
             {
-                // Both exist (or adulthood not applicable), skip straight to Personality Synthesis
-                GeneratePersonalityProfile(pawn, coreComp);
+                // Everything is somehow already generated
+                FinalizeBackstory(pawn, coreComp);
             }
         }
 
@@ -405,6 +417,73 @@ Current Traits: {traits}
                 catch (Exception ex)
                 {
                     RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse personality profile: {ex.Message}");
+                }
+            }
+
+            // Chain to Step 4: Initial Clinical Assessment
+            GenerateClinicalAssessment(pawn, coreComp);
+        }
+
+        // ────────────────────────────────────────────────────────
+        //  Step 4: Clinical Assessment
+        // ────────────────────────────────────────────────────────
+
+        private void GenerateClinicalAssessment(Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
+        {
+            string systemPrompt = @"You are the Chief Medical Officer and Psychologist for a new colony on the Rim.
+Write a brief, clinical psychological intake assessment for this colonist.
+This is their baseline evaluation upon joining the colony. Focus on potential psychological risks, their core coping mechanisms, and any behavioral warnings the colony leadership should be aware of based on their life history and personality.
+
+RULES:
+- Write in a clinical, observational tone (third person).
+- Keep it to 2-3 concise sentences.
+- Focus on psychological risks, stress response, and interpersonal integration.
+- Reference their past experiences obliquely if relevant.
+
+You MUST respond in valid JSON:
+{
+  ""ClinicalAssessment"": ""Subject shows signs of hyper-vigilance due to past combat trauma, but demonstrates strong resilience. Recommend monitoring during prolonged periods of isolation.""
+}";
+
+            string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
+Age/Gender: {pawn.ageTracker?.AgeBiologicalYears ?? 0} {pawn.gender}
+
+Dynamic Backstory:
+{coreComp.dynamicBackstory}
+
+Write the initial clinical intake assessment.";
+
+            var options = new ChatOptions { priority = 4, requestName = "Initial Clinical Assessment", targetName = pawn.Name.ToStringShort };
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result => OnClinicalAssessmentGenerated(result, pawn, coreComp),
+                options
+            );
+        }
+
+        private void OnClinicalAssessmentGenerated(ChatResult result, Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
+        {
+            if (result.success)
+            {
+                try
+                {
+                    string json = JsonHelper.ExtractJson(result.content);
+                    if (json != null)
+                    {
+                        var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                        if (parsed != null && parsed.TryGetValue("ClinicalAssessment", out object assessmentObj))
+                        {
+                            coreComp.clinicalAssessment = assessmentObj.ToString();
+                            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Initial clinical assessment generated for {pawn.Name.ToStringShort}.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse clinical assessment: {ex.Message}");
                 }
             }
 
