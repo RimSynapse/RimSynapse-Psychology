@@ -608,7 +608,8 @@ Write a vivid childhood memory for this future leader.";
             string skillBonuses = FormatSkillGains(adulthood);
             string disabledWork = FormatDisabledWork(adulthood);
 
-            string title = leader.royalty?.MostSeniorTitle?.def?.label ?? "Leader";
+            string royaltyTitle = RimSynapse.Expansions.Royalty.PsychologyRoyaltyIntegration.GetSeniorTitle(leader);
+            string title = royaltyTitle ?? "Leader";
             string factionName = faction?.Name ?? "Unknown";
             string factionType = faction?.def?.LabelCap ?? "Faction";
             string traits = leader.story?.traits?.allTraits != null
@@ -843,7 +844,7 @@ Traits: {traits}{hometownContext}
         {
             if (p.Faction != null && p.Faction.leader == p) return true;
             if (p.IsPrisonerOfColony) return true;
-            if (p.royalty != null && p.royalty.AllTitlesForReading.Any()) return true;
+            if (RimSynapse.Expansions.Royalty.PsychologyRoyaltyIntegration.IsNoble(p)) return true;
             if (p.relations != null && p.relations.FamilyByBlood.Any(r => r.Faction == Faction.OfPlayer || r.IsPrisonerOfColony)) return true;
             return false;
         }

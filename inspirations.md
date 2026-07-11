@@ -37,3 +37,30 @@
 **RimSynapse Feature:** <missing>
 **AI Suggestion:** When a pawn suffers a traumatic event, initiate a "Therapy Chat" to process the trauma into a long-term memory.
 **User Input:** YES!!!! I think this should be done pawn to pawn though. But driven by the player. So it's an action that another pawn can activate against any other pawn. These are specific types of conversations though. Not generic talk. The other pawn can say no too. Like if they are working, or absolutely hate the pawn. If they are prisoner or slave they have no choice but to accept though. The social status may also mean they accept, even if they hate them.
+
+## Expansion Inspirations
+
+### Feature 7: Memories of Nobility & Power (Royalty)
+**Source Credit:** Royalty DLC
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Unique defining memories for gaining titles or using powerful psycasts. ("The day I silenced a crowd with my mind.") Nobles develop psychological complexes about their status.
+
+### Feature 8: Spiritual Rebirth & Crises of Faith (Ideology)
+**Source Credit:** Vanilla Ideology Expanded
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Rituals and conversion attempts are highly impactful memories. A pawn being converted forms a "Rebirth" memory, while seeing a relic destroyed causes a "Crisis of Faith" trauma.
+
+### Feature 9: Genetic Dysphoria & Vat-Grown Trauma (Biotech)
+**Source Credit:** Biotech DLC / Questionable Ethics Enhanced
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Memories of giving birth, growing up in a vat, or receiving forced genetic modifications. ("When the mechanites altered my DNA, I felt like a stranger in my own body.")
+
+### Feature 10: Void Taint & Cosmic Horror (Anomaly)
+**Source Credit:** Anomaly DLC
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Deep trauma memories from entity encounters. Studying the void leaves permanent "Void Taint" tags on memories, subtly altering the pawn's personality profile towards madness or obsession.
+
+### Feature 11: The Weight of the Stars (Odyssey)
+**Source Credit:** Save Our Ship 2
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Unique psychological profiles for pawns who have left the planet. The harshness of the void and missing the dirt of the Rim creates deep melancholic or transcendent memories.
