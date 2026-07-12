@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Verse;
 using LudeonTK;
@@ -19,23 +19,23 @@ namespace RimSynapse.Psychology.Utils
             var comp = p.TryGetComp<SynapseCorePawnComp>();
             if (comp == null)
             {
-                RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse] {p.Name} has no SynapseCorePawnComp.");
+                RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse] {p.Name} has no SynapseCorePawnComp.");
                 return;
             }
             
-            RimSynapse.SynapseLog.Info("psychology", $"--- Psychology State for {p.Name} ---");
-            RimSynapse.SynapseLog.Info("psychology", $"Memories: {comp.memories.Count}");
+            RimSynapse.SynapseLogger.Info("psychology", $"--- Psychology State for {p.Name} ---");
+            RimSynapse.SynapseLogger.Info("psychology", $"Memories: {comp.memories.Count}");
             foreach (var m in comp.memories)
             {
-                RimSynapse.SynapseLog.Info("psychology", $"  - [{m.memoryType}] {m.summary} (w:{m.weight}) refs:{m.timesReferenced}");
+                RimSynapse.SynapseLogger.Info("psychology", $"  - [{m.memoryType}] {m.summary} (w:{m.weight}) refs:{m.timesReferenced}");
             }
             
             var psychComp = p.TryGetComp<SynapsePawnComp>();
             if (psychComp != null)
             {
-                RimSynapse.SynapseLog.Info("psychology", $"Break Category: {psychComp.breakCategory}");
-                RimSynapse.SynapseLog.Info("psychology", $"Zealot: {psychComp.ideologyZealot}");
-                RimSynapse.SynapseLog.Info("psychology", $"Has Backstory Memory: {psychComp.hasBackstoryMemory}");
+                RimSynapse.SynapseLogger.Info("psychology", $"Break Category: {psychComp.breakCategory}");
+                RimSynapse.SynapseLogger.Info("psychology", $"Zealot: {psychComp.ideologyZealot}");
+                RimSynapse.SynapseLogger.Info("psychology", $"Has Backstory Memory: {psychComp.hasBackstoryMemory}");
             }
         }
 
@@ -58,7 +58,7 @@ namespace RimSynapse.Psychology.Utils
         {
             if (p == null) return;
             SynapsePsychology.QueueDailyPsychologyReview(p, 0.5f, new System.Collections.Generic.List<WeightedMemory>());
-            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse] Forced daily psychology review for {p.Name}");
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse] Forced daily psychology review for {p.Name}");
         }
 
         [DebugAction("RimSynapse", "Psychology: Trigger Euphoria", actionType = DebugActionType.ToolMapForPawns, allowedGameStates = AllowedGameStates.PlayingOnMap)]
@@ -106,4 +106,5 @@ namespace RimSynapse.Psychology.Utils
         }
     }
 }
+
 

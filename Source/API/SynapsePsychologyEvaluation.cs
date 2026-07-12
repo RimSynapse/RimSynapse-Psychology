@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Verse;
@@ -28,33 +28,44 @@ namespace RimSynapse.Psychology.API
             if (pawnComp == null || coreComp == null) return;
 
             string systemPrompt = @"You are a clinical psychologist in the RimWorld universe writing a formal medical evaluation.
-Based on this colonist's average mood today, their recent memories, their survival skills, and the state of the colony, assess the following 8 categories (write 1-2 sentences each):
-- Relationships (How they feel about others)
-- Trauma (Recent pain or historical suffering)
-- ShapingEvents (Major life events, e.g., wedding, birth, deaths)
-- Disorders (Psychological conditions or 'None')
-- Satisfaction (General contentment with their life)
-- Fulfillment (Whether their work aligns with their passions)
-- Arrogance (Ego related to their titles or skills)
-- Dedication (Are they discontent? Likely to rebel or leave?)
+Based on this colonist's average mood today, their recent memories, their survival skills, and the state of the colony, assess the following 9 categories (write 1-2 sentences each), and then provide a final Summary:
+- Mood (Emotional baseline, volatility, and general disposition)
+- Interpersonal (Attachment style, sociability, relationships with others)
+- Trauma (Lingering psychological effects of past horrors, deaths, or recent brutal raids)
+- Cognitive (Paranoia, grandiosity, irrational fears, or hyper-fixations)
+- Motivations (What keeps them going: duty, survival, greed, ideology?)
+- Identity (How they view themselves and their role within the colony)
+- Morality (Capacity for cruelty versus compassion: e.g., handling prisoners, organ harvesting)
+- Authority (Rebelliousness versus obedience to colony leadership and drafted orders)
+- Addiction (Psychological reliance on substances or specific comforts)
+- Summary (The final overarching clinical assessment and prognosis)
 
-You MUST analyze the 'Tags' attached to their recent memories. If you see recurring themes (e.g. 'Food', 'Starving', 'Safety'), you must explicitly address this growing concern in their Satisfaction or Dedication assessment.
+You MUST analyze the 'Tags' attached to their recent memories. If you see recurring themes (e.g. 'Food', 'Starving', 'Safety'), you must explicitly address this growing concern in your evaluation.
 
 You must also provide an 'AbandonmentRiskScore' (0-100) representing how likely they are to permanently abandon the colony (or rebel if a slave). High survival skills and low satisfaction increase this risk.
 
 Finally, output a 'SocialAdjustments' object reflecting changes in their Trust (-100 to +100) and Familiarity (0 to 100) with other colonists based on recent events. Use the colonist's short name as the key. Trust offsets should be between -15 and +15. Familiarity offsets should be positive (0 to +10).
 
+Additionally, evaluate if their recent experiences are profound enough to change their personality traits. If so, return a 'TraitChanges' object with an 'Add' array (containing RimWorld trait defNames to add, e.g. 'Bloodlust', 'Nerves') and/or a 'Remove' array (trait defNames to remove). Keep this rare; leave arrays empty if no profound change occurred.
+The colonist currently has the following dynamically added traits (which you previously added): {DYNAMIC_TRAITS}. If you determine the pawn has moved past the psychological phase that caused these traits, you should include them in the 'Remove' array so they can decay.
+
 You MUST respond strictly in valid JSON format. Do not include markdown formatting or extra text.
 {
-  ""Relationships"": ""1-2 sentences..."",
+  ""Mood"": ""1-2 sentences..."",
+  ""Interpersonal"": ""1-2 sentences..."",
   ""Trauma"": ""1-2 sentences..."",
-  ""ShapingEvents"": ""1-2 sentences..."",
-  ""Disorders"": ""1-2 sentences..."",
-  ""Satisfaction"": ""1-2 sentences..."",
-  ""Fulfillment"": ""1-2 sentences..."",
-  ""Arrogance"": ""1-2 sentences..."",
-  ""Dedication"": ""1-2 sentences..."",
+  ""Cognitive"": ""1-2 sentences..."",
+  ""Motivations"": ""1-2 sentences..."",
+  ""Identity"": ""1-2 sentences..."",
+  ""Morality"": ""1-2 sentences..."",
+  ""Authority"": ""1-2 sentences..."",
+  ""Addiction"": ""1-2 sentences..."",
+  ""Summary"": ""1-2 sentences..."",
   ""AbandonmentRiskScore"": 0,
+  ""TraitChanges"": {
+    ""Add"": [""Bloodlust""],
+    ""Remove"": [""Kind""]
+  },
   ""SocialAdjustments"": {
     ""ColonistName1"": {
       ""trustOffset"": 2.5,
@@ -107,7 +118,7 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
                     if (target != null)
                     {
                         int affinity = target.relations != null ? pawn.relations.OpinionOf(target) : 0;
-                        socialLines.Add($"- {target.Name.ToStringShort}: Trust {kvp.Value.trust:F0}, Familiarity {kvp.Value.familiarity:F0}, Affinity {affinity}");
+                        socialLines.Add($"- {target.Name.ToStringShort} ({target.gender}): Trust {kvp.Value.trust:F0}, Familiarity {kvp.Value.familiarity:F0}, Affinity {affinity}");
                     }
                 }
                 if (socialLines.Count > 0)
@@ -116,7 +127,15 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
                 }
             }
 
+            string dynamicTraitsStr = "None";
+            if (pawnComp.dynamicTraits.Count > 0)
+            {
+                dynamicTraitsStr = string.Join(", ", pawnComp.dynamicTraits.Select(t => $"{t.traitDef.defName} (Added {((Find.TickManager.TicksGame - t.tickAdded)/60000f):F1} days ago for: {t.reason})"));
+            }
+            systemPrompt = systemPrompt.Replace("{DYNAMIC_TRAITS}", dynamicTraitsStr);
+
             string userMessage = $@"Patient Name: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Status: {statusText}
 Colony Size: {colonySize}
 Time as Colonist: {timeAsColonist:F1} days
@@ -128,7 +147,7 @@ Current Social Network (Trust, Familiarity, Affinity):
 Recent Memories:
 {recentEvents}";
 
-            var options = new ChatOptions { priority = isOpportunistic ? -1 : 0 };
+            var options = new ChatOptions { priority = isOpportunistic ? -1 : 0, requestName = "Daily Psychology Review", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -195,6 +214,34 @@ Recent Memories:
                                             });
                                         }
                                     }
+                                    else if (kvp.Key == "TraitChanges" && kvp.Value is Newtonsoft.Json.Linq.JObject traitObj)
+                                    {
+                                        SynapseGameComponent.Enqueue(() =>
+                                        {
+                                            if (pawn.story == null || pawn.story.traits == null) return;
+                                            
+                                            var addArr = traitObj["Add"] as Newtonsoft.Json.Linq.JArray;
+                                            var removeArr = traitObj["Remove"] as Newtonsoft.Json.Linq.JArray;
+                                            
+                                            if (removeArr != null)
+                                            {
+                                                foreach (var traitName in removeArr)
+                                                {
+                                                    string tName = traitName.ToString();
+                                                    SynapsePsychology.ApplyTraitDirective(pawn, tName, false, "The psychological evaluation determined this trait has decayed or is no longer relevant.");
+                                                }
+                                            }
+                                            
+                                            if (addArr != null)
+                                            {
+                                                foreach (var traitName in addArr)
+                                                {
+                                                    string tName = traitName.ToString();
+                                                    SynapsePsychology.ApplyTraitDirective(pawn, tName, true, "The psychological evaluation determined a profound personality shift.");
+                                                }
+                                            }
+                                        });
+                                    }
                                     else
                                     {
                                         pawnComp.medicalProfile[kvp.Key] = kvp.Value.ToString();
@@ -204,22 +251,65 @@ Recent Memories:
                         }
                         catch (Exception ex)
                         {
-                            RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
+                            RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
                         }
                         
                         onComplete?.Invoke(true);
                     }
                     else
                     {
-                        RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
+                        RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
                         onComplete?.Invoke(false);
                     }
                     sw.Stop();
-                    RimSynapse.Utils.SynapseFileLogger.LogMetric("Psychology", pawn, "QueueDailyPsychologyReview", sw.ElapsedMilliseconds);
+//
+                },
+                options
+            );
+        }
+        public static void SummarizeTherapySession(Pawn initiator, Pawn target, List<string> chatLog)
+        {
+            if (chatLog == null || chatLog.Count == 0) return;
+
+            string fullTranscript = string.Join("\n", chatLog);
+            string systemPrompt = @"You are a clinical psychologist summarizing a therapy session between two colonists.
+Analyze the transcript and extract the key psychological insights, breakthroughs, or recurring themes.
+Return a brief, profound 2-3 sentence summary that will be stored permanently as context for future interactions between these two pawns.
+Do not include markdown or formatting, just the plain text summary.";
+
+            string userMessage = $@"Initiator (Counselor): {initiator.NameShortColored}
+Target (Patient): {target.NameShortColored}
+
+Transcript:
+{fullTranscript}";
+
+            var options = new ChatOptions { priority = -1, requestName = "Therapy Summary", targetName = $"{initiator.NameShortColored} -> {target.NameShortColored}" };
+
+            SynapseClient.PromptAsync(
+                RimSynapsePsychologyMod.ModHandle,
+                systemPrompt,
+                userMessage,
+                result => 
+                {
+                    if (result.success)
+                    {
+                        string summary = result.content.Trim();
+                        // Store the summary in the core memory network or pawn comp for future context
+                        // TriggerOpportunisticMemoryGeneration(target, $"Had a breakthrough in therapy with {initiator.LabelShort}: {summary}", "Therapy, Insight", null);
+                        // TriggerOpportunisticMemoryGeneration(initiator, $"Provided therapy for {target.LabelShort}. Key takeaway: {summary}", "Therapy, Insight", null);
+                    }
+                    else
+                    {
+                        RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to summarize therapy session: {result.error}");
+                    }
                 },
                 options
             );
         }
     }
 }
+
+
+
+
 

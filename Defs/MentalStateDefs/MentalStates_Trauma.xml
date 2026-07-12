@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <MentalStateDef>
+    <defName>Synapse_TraumaTrigger</defName>
+    <stateClass>RimSynapse.Psychology.MentalStates.MentalState_TraumaTrigger</stateClass>
+    <label>trauma trigger</label>
+    <description>This person has suffered a psychological break due to past trauma. They will wildly fire their weapon before cowering in fear.</description>
+    <category>Aggro</category>
+    <nameColor>(1,0.2,0.2)</nameColor>
+    <colonistsOnly>true</colonistsOnly>
+    <allowBeatfire>true</allowBeatfire>
+    <minTicksBeforeRecovery>3000</minTicksBeforeRecovery>
+    <recoveryMtbDays>0.1</recoveryMtbDays>
+    <recoveryMessage>{0} has calmed down from their trauma trigger.</recoveryMessage>
+    <baseInspectLine>Trauma trigger.</baseInspectLine>
+  </MentalStateDef>
+
+</Defs>

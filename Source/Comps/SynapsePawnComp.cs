@@ -29,7 +29,7 @@ namespace RimSynapse.Psychology.Comps
         // Track whether this pawn has had a backstory memory generated yet.
         // This helps queue LLM calls safely instead of freezing the game on spawn.
         public bool hasBackstoryMemory = false;
-        private int ticksToGenerateBackstory = 2500; // ~1 in-game hour delay to simulate LLM
+        private int ticksToGenerateBackstory = 0; // Fire immediately on first tick
 
         // Active AI-driven modifiers
         public BreakCategory breakCategory = BreakCategory.Default;
@@ -57,6 +57,11 @@ namespace RimSynapse.Psychology.Comps
         private int moodSamples = 0;
         
         public int lastExtremeNegativeTick = -1;
+        public int lastExtremePositiveTick = -1;
+        
+        public List<RimSynapse.Psychology.Models.DynamicTraitRecord> dynamicTraits = new List<RimSynapse.Psychology.Models.DynamicTraitRecord>();
+        
+        public List<RimSynapse.Psychology.Models.TherapyTranscript> therapyTranscripts = new List<RimSynapse.Psychology.Models.TherapyTranscript>();
         
         public int lastJournalUpdateDay = -1;
         public bool isAwaitingJournalUpdate = false;
@@ -81,9 +86,15 @@ namespace RimSynapse.Psychology.Comps
             Scribe_Values.Look(ref breakIntensity, "breakIntensity", BreakIntensity.Medium);
             Scribe_Values.Look(ref wasAsleep, "wasAsleep", false);
             Scribe_Values.Look(ref lastExtremeNegativeTick, "lastExtremeNegativeTick", -1);
-            Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 2500);
+            Scribe_Values.Look(ref lastExtremePositiveTick, "lastExtremePositiveTick", -1);
+            Scribe_Values.Look(ref ticksToGenerateBackstory, "ticksToGenerateBackstory", 0);
             Scribe_Values.Look(ref lastJournalUpdateDay, "lastJournalUpdateDay", -1);
             Scribe_Values.Look(ref isAwaitingJournalUpdate, "isAwaitingJournalUpdate", false);
+            Scribe_Collections.Look(ref dynamicTraits, "dynamicTraits", LookMode.Deep);
+            Scribe_Collections.Look(ref therapyTranscripts, "therapyTranscripts", LookMode.Deep);
+
+            if (dynamicTraits == null) dynamicTraits = new List<RimSynapse.Psychology.Models.DynamicTraitRecord>();
+            if (therapyTranscripts == null) therapyTranscripts = new List<RimSynapse.Psychology.Models.TherapyTranscript>();
             Scribe_Values.Look(ref savedAverageMood, "savedAverageMood", 0.5f);
             Scribe_Values.Look(ref hasCheckedAdulthood, "hasCheckedAdulthood", false);
 
@@ -98,10 +109,23 @@ namespace RimSynapse.Psychology.Comps
             }
         }
 
-        public override void CompTickRare()
+        public override void PostSpawnSetup(bool respawningAfterLoad)
         {
-            base.CompTickRare();
+            base.PostSpawnSetup(respawningAfterLoad);
             
+            if (parent is Pawn pawn && !pawn.Dead)
+            {
+                // We rely entirely on CompTick for backstory generation
+                // Calling PromptAsync during map loading can drop the request and get isGeneratingBackstory stuck.
+            }
+        }
+
+        public override void CompTick()
+        {
+            base.CompTick();
+            
+            if (!parent.IsHashIntervalTick(250)) return;
+
             if (parent is Pawn pawn && pawn.Spawned && !pawn.Dead)
             {
                 // Async Backstory Stub
@@ -139,7 +163,7 @@ namespace RimSynapse.Psychology.Comps
                             isAwaitingJournalUpdate = true;
                             savedAverageMood = moodSamples > 0 ? (dailyMoodAccumulator / moodSamples) : pawn.needs.mood.CurLevelPercentage;
                             
-                            RimSynapse.Utils.SynapseFileLogger.LogEvent("Psychology", pawn, "DailyReview", $"Flagged for Opportunistic Review. Asleep: {isAsleep}, Hour: {currentHour}, Avg Mood: {savedAverageMood:F2}");
+//
 
                             // Reset daily tracking immediately so we can start recording the next day
                             dailyMoodAccumulator = 0f;
@@ -157,6 +181,13 @@ namespace RimSynapse.Psychology.Comps
                     socialTickCounter = 0;
                     UpdateSocialNetwork(pawn);
                 }
+            }
+
+            // Prune old transcripts (older than 7 days)
+            if (therapyTranscripts != null && therapyTranscripts.Count > 0)
+            {
+                int currentTick = Find.TickManager.TicksGame;
+                therapyTranscripts.RemoveAll(t => currentTick - t.sessionTick > 420000); // 7 days * 60000 ticks
             }
         }
 
@@ -219,3 +250,7 @@ namespace RimSynapse.Psychology.Comps
         }
     }
 }
+
+
+
+

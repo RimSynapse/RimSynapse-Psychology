@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <JobDef>
+    <defName>Synapse_InitiateTherapy</defName>
+    <driverClass>RimSynapse.Psychology.Jobs.JobDriver_TherapySession</driverClass>
+    <reportString>having a therapy session with TargetA.</reportString>
+    <joyDuration>4000</joyDuration>
+    <joyKind>Social</joyKind>
+  </JobDef>
+</Defs>

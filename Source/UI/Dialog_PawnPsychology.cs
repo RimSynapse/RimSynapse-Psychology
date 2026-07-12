@@ -73,6 +73,8 @@ namespace RimSynapse.Psychology.UI
             Text.Anchor = TextAnchor.UpperLeft;
             Text.Font = GameFont.Small;
 
+            // Force Review Button removed from here
+
             // Setup Tab space
             Rect tabRect = new Rect(0f, headerRect.yMax + 30f, inRect.width, inRect.height - headerRect.yMax - 30f);
             
@@ -110,6 +112,32 @@ namespace RimSynapse.Psychology.UI
             Rect portraitRect = new Rect(rect.x, curY, 150f, 150f);
             GUI.DrawTexture(portraitRect, PortraitsCache.Get(pawn, new Vector2(150f, 150f), Rot4.South));
             
+            // Force Review Button (moved below portrait)
+            Rect forceReviewRect = new Rect(rect.x, portraitRect.yMax + 10f, 150f, 30f);
+            if (Widgets.ButtonText(forceReviewRect, "Force Psych Review"))
+            {
+                var cc = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+                var pc = pawn.TryGetComp<SynapsePawnComp>();
+                
+                if (cc != null && pc != null)
+                {
+                    float mood = pawn.needs?.mood?.CurLevelPercentage ?? 0.5f;
+                    var recentEvents = cc.memories
+                        .Where(m => Find.TickManager.TicksAbs - m.absTick < 60000)
+                        .ToList();
+                        
+                    Messages.Message($"Queueing immediate psychological review for {pawn.LabelShort}...", MessageTypeDefOf.NeutralEvent, false);
+                    
+                    RimSynapse.Psychology.API.SynapsePsychology.QueueDailyPsychologyReview(pawn, mood, recentEvents, (success) => {
+                        if (success) 
+                        {
+                            Messages.Message($"Completed psychological review for {pawn.LabelShort}.", MessageTypeDefOf.PositiveEvent, false);
+                            pc.lastJournalUpdateDay = GenDate.DaysPassed; // Reset cooldown
+                        }
+                    }, true);
+                }
+            }
+            
             // Draw Traits next to Portrait
             Rect traitsHeaderRect = new Rect(portraitRect.xMax + 20f, curY + 10f, rect.width - portraitRect.width - 20f, 30f);
             Text.Font = GameFont.Medium;
@@ -134,12 +162,12 @@ namespace RimSynapse.Psychology.UI
             }
             GUI.color = Color.white;
             
-            curY = portraitRect.yMax + 30f;
+            curY = Mathf.Max(forceReviewRect.yMax + 30f, bulletY + 20f);
             
             Widgets.DrawLineHorizontal(rect.x, curY, rect.width);
             curY += 15f;
 
-            // Draw Clinical Assessment (Medical Form)
+            // Draw Daily Evaluation (Medical Form) Header
             Text.Font = GameFont.Medium;
             Widgets.Label(new Rect(rect.x, curY, rect.width, 30f), "Medical Evaluation");
             Text.Font = GameFont.Small;
@@ -148,14 +176,31 @@ namespace RimSynapse.Psychology.UI
             var pawnComp = pawn.TryGetComp<SynapsePawnComp>();
             if (pawnComp == null) return;
             
-            string[] formFields = { "Relationships", "Trauma", "ShapingEvents", "Disorders", "Satisfaction", "Fulfillment", "Arrogance", "Dedication" };
-            string[] formLabels = { "Relationships", "Trauma", "Shaping Events", "Disorders", "Satisfaction", "Fulfillment", "Arrogance", "Dedication" };
+            string[] formFields = { "Mood", "Interpersonal", "Trauma", "Cognitive", "Motivations", "Identity", "Morality", "Authority", "Addiction" };
+            string[] formLabels = { "Mood & Affect", "Interpersonal Dynamics", "Trauma & PTSD", "Cognitive Distortions", "Core Motivations", "Identity & Self-Image", "Moral Alignment", "Authority & Compliance", "Addiction & Dependencies" };
             
             float remainingHeight = rect.yMax - curY;
             Rect viewRect = new Rect(rect.x, curY, rect.width - 20f, 1000f); 
             Widgets.BeginScrollView(new Rect(rect.x, curY, rect.width, remainingHeight), ref profileScrollPosition, viewRect);
             
             float formY = curY;
+
+            // Draw Summary inside Scroll View (Top)
+            GUI.color = new Color(0.7f, 0.9f, 1f);
+            Rect headerRectAssess = new Rect(rect.x, formY, viewRect.width, 22f);
+            Widgets.Label(headerRectAssess, "<b>Summary / Prognosis</b>");
+            GUI.color = Color.white;
+            formY += 22f;
+
+            string initialAssessment = pawnComp.medicalProfile.TryGetValue("Summary", out string sVal) ? sVal : "Awaiting clinical assessment...";
+            float initAssessHeight = Text.CalcHeight(initialAssessment, viewRect.width);
+            Widgets.Label(new Rect(rect.x, formY, viewRect.width, initAssessHeight), initialAssessment);
+            formY += initAssessHeight + 10f;
+            
+            Widgets.DrawLineHorizontal(rect.x, formY, viewRect.width);
+            formY += 10f;
+
+            // Draw Daily Evaluation Fields
             for (int i = 0; i < formFields.Length; i++)
             {
                 string key = formFields[i];

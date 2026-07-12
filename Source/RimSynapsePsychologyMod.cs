@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Verse;
 using RimWorld;
@@ -68,17 +68,7 @@ namespace RimSynapse.Psychology
                     CooldownTicks = 5000 // Check frequently, since it only fires if a pawn is flagged
                 });
 
-            RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_LeaderBackstory",
-                (System.Func<bool>)API.SynapsePsychology.TriggerLeaderBackstoryGeneration,
-                new RimSynapse.Internal.OpportunisticTaskConfig
-                {
-                    Label = "Leader Backstory",
-                    Description = "Generates AI backstories for all faction leaders (World VIPs). Runs after faction history to use it as context.",
-                    Priority = 4, // Below colonist tasks (8, 5) and faction history (6)
-                    Weight = 1.5f,
-                    CooldownTicks = 5000 // Short cooldown â€” iterate through leaders quickly
-                });
-            
+
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_RelationshipEvaluation",
                 (System.Func<bool>)API.SynapsePsychology.TriggerRelationshipEvaluation,
                 new RimSynapse.Internal.OpportunisticTaskConfig
@@ -90,7 +80,7 @@ namespace RimSynapse.Psychology
                     CooldownTicks = 15000
                 });
             
-            RimSynapse.SynapseLog.Info("psychology", "[RimSynapse-Psychology] Mod initialized.");
+            RimSynapse.SynapseLogger.Info("psychology", "[RimSynapse-Psychology] Mod initialized.");
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -99,7 +89,7 @@ namespace RimSynapse.Psychology
             listingStandard.Begin(inRect);
             
             listingStandard.Label("Note: Debug logging is now globally configured in RimSynapse Core settings.");
-            // â”€â”€ Mechanics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Mechanics ───────────────────────────────────────────
             listingStandard.Label("Mechanics");
             listingStandard.GapLine();
 
@@ -149,8 +139,9 @@ namespace RimSynapse.Psychology
                 }
             }
             
-            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Injected SynapsePawnComp into {injectedCount} humanlike ThingDefs.");
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Injected SynapsePawnComp into {injectedCount} humanlike ThingDefs.");
         }
     }
 }
+
 

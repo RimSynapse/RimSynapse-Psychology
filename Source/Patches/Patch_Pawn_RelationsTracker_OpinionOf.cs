@@ -13,10 +13,10 @@ namespace RimSynapse.Psychology.Patches
             if (___pawn == null || other == null) return;
             
             var comp = ___pawn.GetComp<SynapsePawnComp>();
-            if (comp != null)
+            if (comp != null && comp.socialNetwork != null)
             {
                 string otherId = other.GetUniqueLoadID();
-                if (comp.socialNetwork.TryGetValue(otherId, out var record))
+                if (comp.socialNetwork.TryGetValue(otherId, out var record) && record != null)
                 {
                     // Scale vanilla down by 50%
                     float vanilla = __result * 0.5f;

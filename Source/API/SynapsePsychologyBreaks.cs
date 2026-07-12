@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Verse;
@@ -37,21 +37,30 @@ namespace RimSynapse.Psychology.API
             TraitDef traitDef = DefDatabase<TraitDef>.GetNamedSilentFail(traitDefName);
             if (traitDef == null)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Trait {traitDefName} not found.");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Trait {traitDefName} not found.");
                 return;
             }
 
             bool changed = false;
+            var comp = pawn.TryGetComp<SynapsePawnComp>();
 
             if (add && !pawn.story.traits.HasTrait(traitDef))
             {
                 pawn.story.traits.GainTrait(new Trait(traitDef));
+                if (comp != null)
+                {
+                    comp.dynamicTraits.Add(new RimSynapse.Psychology.Models.DynamicTraitRecord(traitDef, Find.TickManager.TicksGame, aiReasoning));
+                }
                 changed = true;
             }
             else if (!add && pawn.story.traits.HasTrait(traitDef))
             {
                 var trait = pawn.story.traits.GetTrait(traitDef);
                 pawn.story.traits.allTraits.Remove(trait);
+                if (comp != null)
+                {
+                    comp.dynamicTraits.RemoveAll(x => x.traitDef == traitDef);
+                }
                 changed = true;
             }
 
@@ -82,7 +91,7 @@ namespace RimSynapse.Psychology.API
             MentalStateDef breakDef = DefDatabase<MentalStateDef>.GetNamedSilentFail(breakDefName);
             if (breakDef == null)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Predicted break {breakDefName} not found.");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Predicted break {breakDefName} not found.");
                 return;
             }
 
@@ -94,4 +103,5 @@ namespace RimSynapse.Psychology.API
         }
     }
 }
+
 

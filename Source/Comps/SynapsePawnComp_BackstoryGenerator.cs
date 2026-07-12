@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -31,7 +31,7 @@ namespace RimSynapse.Psychology.Comps
         private bool isGeneratingBackstory = false;
 
         /// <summary>
-        /// Entry point â€” called from CompTickRare when the pawn doesn't have a backstory yet.
+        /// Entry point — called from CompTickRare when the pawn doesn't have a backstory yet.
         /// Kicks off Step 1 (childhood memory generation).
         /// </summary>
         private void GenerateAIBackstory(Pawn pawn)
@@ -39,21 +39,38 @@ namespace RimSynapse.Psychology.Comps
             var coreComp = pawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (coreComp == null) return;
 
-            if (!SynapseClient.IsOnline)
-            {
-                ticksToGenerateBackstory = 2500;
-                return;
-            }
-
             isGeneratingBackstory = true;
 
-            // Step 1: Generate childhood memory
-            GenerateChildhoodMemory(pawn, coreComp);
+            bool hasChildhood = coreComp.memories.Any(m => m.memoryType == "BackstoryChildhood");
+            bool hasAdulthood = coreComp.memories.Any(m => m.memoryType == "BackstoryAdulthood");
+            bool hasPersonality = !string.IsNullOrEmpty(coreComp.personalitySummary);
+            bool hasAssessment = !string.IsNullOrEmpty(coreComp.clinicalAssessment);
+
+            if (!hasChildhood)
+            {
+                // Step 1: Generate childhood memory
+                GenerateChildhoodMemory(pawn, coreComp);
+            }
+            else if (!hasAdulthood && pawn.story?.Adulthood != null)
+            {
+                // Step 2: Skip childhood, go straight to adulthood
+                GenerateAdulthoodMemory(pawn, coreComp);
+            }
+            else if (!hasPersonality)
+            {
+                // Step 3: Skip to Personality Synthesis
+                GeneratePersonalityProfile(pawn, coreComp);
+            }
+            else
+            {
+                // Everything is somehow already generated
+                FinalizeBackstory(pawn, coreComp);
+            }
         }
 
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
         //  Step 1: Childhood Memory
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
 
         private void GenerateChildhoodMemory(Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
         {
@@ -74,20 +91,20 @@ namespace RimSynapse.Psychology.Comps
             }
 
             string systemPrompt = @"You are writing a vivid first-person memory for a colonist in the RimWorld universe.
-This memory is from their CHILDHOOD. It should be a specific, concrete scene â€” not a summary.
+This memory is from their CHILDHOOD. It should be a specific, concrete scene — not a summary.
 
 RULES:
 - Write 100-200 words, first person (""I"", ""me"", ""my"")
 - This is a SINGLE vivid memory, not a life summary
 - Ground the memory in the skill bonuses: if they got +4 Mining, describe WHY through experience (""I spent years chipping limestone..."")
 - If work types are disabled, hint at WHY (trauma, cultural taboo, physical limitation)
-- The memory should feel personal and emotionally resonant â€” a moment they'd actually remember
+- The memory should feel personal and emotionally resonant — a moment they'd actually remember
 - RimWorld setting: frontier planets, crashlanded survivors, tribal societies, harsh conditions
-- You MUST also generate a ""Hometown"" â€” their place of origin. This should match their background:
-  - Outlander/Settler â†’ a named settlement or outpost (e.g., ""Kharstead"", ""Port Valen"")
-  - Tribal â†’ a geographic feature, camp, or caravan route (e.g., ""the Redstone caravan"", ""the marshlands east of Sleeping Ridge"")
-  - Pirate â†’ a ship, station, or raider den (e.g., ""the Rust Fang"", ""Scrapheap Station"")
-  - Imperial â†’ a named city or estate (e.g., ""the Stellarch's court at Novium"")
+- You MUST also generate a ""Hometown"" — their place of origin. This should match their background:
+  - Outlander/Settler → a named settlement or outpost (e.g., ""Kharstead"", ""Port Valen"")
+  - Tribal → a geographic feature, camp, or caravan route (e.g., ""the Redstone caravan"", ""the marshlands east of Sleeping Ridge"")
+  - Pirate → a ship, station, or raider den (e.g., ""the Rust Fang"", ""Scrapheap Station"")
+  - Imperial → a named city or estate (e.g., ""the Stellarch's court at Novium"")
   - If their backstory implies they moved a lot or are orphaned, something vague is fine (""the roads between nowhere"")
 
 You MUST respond in valid JSON:
@@ -99,6 +116,7 @@ You MUST respond in valid JSON:
 }";
 
             string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Faction Background: {factionType}
 Childhood Backstory: ""{childhoodTitle}""
 Vanilla Description: ""{childhoodDesc}""
@@ -106,7 +124,7 @@ Skill Bonuses from Childhood: {skillBonuses}
 {(string.IsNullOrEmpty(disabledWork) ? "" : $"Disabled Work Types: {disabledWork}\n")}{factionContext}
 Write a vivid childhood memory grounded in these skills.";
 
-            var options = new ChatOptions { priority = 5 };
+            var options = new ChatOptions { priority = 1, requestName = "Childhood Backstory", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -121,7 +139,7 @@ Write a vivid childhood memory grounded in these skills.";
         {
             if (!result.success)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed childhood memory for {pawn.Name.ToStringShort}: {result.error}");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed childhood memory for {pawn.Name.ToStringShort}: {result.error}");
                 isGeneratingBackstory = false;
                 ticksToGenerateBackstory = 5000;
                 return;
@@ -130,7 +148,7 @@ Write a vivid childhood memory grounded in these skills.";
             try
             {
                 string json = JsonHelper.ExtractJson(result.content);
-                if (json == null) { RimSynapse.SynapseLog.Warn("psychology", "[RimSynapse-Psychology] No JSON in childhood memory response."); isGeneratingBackstory = false; return; }
+                if (json == null) { RimSynapse.SynapseLogger.Warn("psychology", "[RimSynapse-Psychology] No JSON in childhood memory response."); isGeneratingBackstory = false; return; }
 
                 var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
                 if (parsed == null || !parsed.ContainsKey("Memory")) { isGeneratingBackstory = false; return; }
@@ -163,22 +181,22 @@ Write a vivid childhood memory grounded in these skills.";
                     gameTick = (int)(childTick - SynapseDateHelper.GetAdjustmentTick())
                 });
 
-                RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Childhood memory generated for {pawn.Name.ToStringShort} ({memoryText.Length} chars).");
+                RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Childhood memory generated for {pawn.Name.ToStringShort} ({memoryText.Length} chars).");
 
                 // Chain to Step 2: Adulthood memory
                 GenerateAdulthoodMemory(pawn, coreComp);
             }
             catch (Exception ex)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse childhood memory: {ex.Message}");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse childhood memory: {ex.Message}");
                 isGeneratingBackstory = false;
                 ticksToGenerateBackstory = 5000;
             }
         }
 
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
         //  Step 2: Adulthood Memory
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
 
         private void GenerateAdulthoodMemory(Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
         {
@@ -192,11 +210,11 @@ Write a vivid childhood memory grounded in these skills.";
             // Include the childhood memory we just generated so the AI maintains continuity
             var childhoodMemory = coreComp.memories.LastOrDefault(m => m.memoryType == "BackstoryChildhood");
             string childhoodContext = childhoodMemory != null
-                ? $"\nChildhood Memory (already generated â€” maintain continuity):\n\"{childhoodMemory.summary}\""
+                ? $"\nChildhood Memory (already generated — maintain continuity):\n\"{childhoodMemory.summary}\""
                 : "";
 
             string systemPrompt = @"You are writing a vivid first-person memory for a colonist in the RimWorld universe.
-This memory is from their ADULTHOOD. It should be a specific, concrete scene â€” not a summary.
+This memory is from their ADULTHOOD. It should be a specific, concrete scene — not a summary.
 
 RULES:
 - Write 100-200 words, first person (""I"", ""me"", ""my"")
@@ -215,6 +233,7 @@ You MUST respond in valid JSON:
 }";
 
             string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Adulthood Backstory: ""{adulthoodTitle}""
 Vanilla Description: ""{adulthoodDesc}""
 Skill Bonuses from Adulthood: {skillBonuses}
@@ -222,7 +241,7 @@ Skill Bonuses from Adulthood: {skillBonuses}
 
 Write a vivid adulthood memory grounded in these skills.";
 
-            var options = new ChatOptions { priority = 4 };
+            var options = new ChatOptions { priority = 2, requestName = "Adulthood Backstory", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -237,8 +256,8 @@ Write a vivid adulthood memory grounded in these skills.";
         {
             if (!result.success)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed adulthood memory for {pawn.Name.ToStringShort}: {result.error}");
-                // Childhood memory was already stored â€” just mark backstory complete with what we have
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed adulthood memory for {pawn.Name.ToStringShort}: {result.error}");
+                // Childhood memory was already stored — just mark backstory complete with what we have
                 FinalizeBackstory(pawn, coreComp);
                 return;
             }
@@ -246,7 +265,7 @@ Write a vivid adulthood memory grounded in these skills.";
             try
             {
                 string json = JsonHelper.ExtractJson(result.content);
-                if (json == null) { RimSynapse.SynapseLog.Warn("psychology", "[RimSynapse-Psychology] No JSON in adulthood memory response."); FinalizeBackstory(pawn, coreComp); return; }
+                if (json == null) { RimSynapse.SynapseLogger.Warn("psychology", "[RimSynapse-Psychology] No JSON in adulthood memory response."); FinalizeBackstory(pawn, coreComp); return; }
 
                 var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
                 if (parsed == null || !parsed.ContainsKey("Memory")) { FinalizeBackstory(pawn, coreComp); return; }
@@ -273,20 +292,20 @@ Write a vivid adulthood memory grounded in these skills.";
                     gameTick = (int)(adultTick - SynapseDateHelper.GetAdjustmentTick())
                 });
 
-                RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Adulthood memory generated for {pawn.Name.ToStringShort} ({memoryText.Length} chars).");
+                RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Adulthood memory generated for {pawn.Name.ToStringShort} ({memoryText.Length} chars).");
             }
             catch (Exception ex)
             {
-                RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse adulthood memory: {ex.Message}");
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse adulthood memory: {ex.Message}");
             }
 
             // Chain to Step 3: Psychological profile synthesis
             GeneratePersonalityProfile(pawn, coreComp);
         }
 
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
         //  Step 3: Personality Profile (using memories as context)
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
 
         private void GeneratePersonalityProfile(Pawn pawn, RimSynapse.Comps.SynapseCorePawnComp coreComp)
         {
@@ -304,12 +323,12 @@ Write a vivid adulthood memory grounded in these skills.";
 Given their childhood memory, adulthood memory, and current personality traits, synthesize a psychological profile.
 
 OUTPUT FORMAT:
-1. [PERSONALITY] â€” A 2-3 sentence personality summary (third person). How do they come across? What drives them? What are they afraid of?
-2. [ARCHETYPES] â€” Exactly 3 psychological archetypes on one line, comma-separated:
+1. [PERSONALITY] — A 2-3 sentence personality summary (third person). How do they come across? What drives them? What are they afraid of?
+2. [ARCHETYPES] — Exactly 3 psychological archetypes on one line, comma-separated:
    - Jungian Type (MBTI: e.g., ENFP, INTJ, INFJ, ESTP)
    - Core Archetype (e.g., Caregiver, Outlaw, Creator, Sage, Ruler, Hero, Explorer, Jester)
    - Temperament (e.g., Sanguine, Melancholic, Phlegmatic, Choleric)
-3. [FIRST_IMPRESSION] â€” A single first-person sentence: what this pawn thinks on arrival at the colony. Written as ""I"".
+3. [FIRST_IMPRESSION] — A single first-person sentence: what this pawn thinks on arrival at the colony. Written as ""I"".
 
 You MUST respond in valid JSON:
 {
@@ -321,13 +340,14 @@ You MUST respond in valid JSON:
 }";
 
             string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
+Gender: {pawn.gender}
 Age: {pawn.ageTracker?.AgeBiologicalYears ?? 0}
 Gender: {pawn.gender}
 Current Traits: {traits}
 
 {memoriesContext}Synthesize their psychological profile.";
 
-            var options = new ChatOptions { priority = 3 };
+            var options = new ChatOptions { priority = 3, requestName = "Psychological Profile", targetName = pawn.Name.ToStringShort };
 
             SynapseClient.PromptAsync(
                 RimSynapsePsychologyMod.ModHandle,
@@ -385,22 +405,31 @@ Current Traits: {traits}
                             // Build the composite backstory narrative from the memories
                             BuildDynamicBackstory(pawn, coreComp);
 
-                            RimSynapse.SynapseLog.Info("psychology", $"[RimSynapse-Psychology] Personality profile synthesized for {pawn.Name.ToStringShort}.");
+                            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Personality profile synthesized for {pawn.Name.ToStringShort}.");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    RimSynapse.SynapseLog.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse personality profile: {ex.Message}");
+                    RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse personality profile: {ex.Message}");
                 }
-            }
+            } // <-- RESTORED BRACE
 
-            FinalizeBackstory(pawn, coreComp);
+            // Step 4: Daily Psychological Review (Generates the 10 medical fields, including Summary)
+            float mood = pawn.needs?.mood?.CurLevelPercentage ?? 0.5f;
+            var recentEvents = coreComp.memories
+                .Where(m => Find.TickManager.TicksAbs - m.absTick < 60000)
+                .ToList();
+                
+            RimSynapse.Psychology.API.SynapsePsychology.QueueDailyPsychologyReview(pawn, mood, recentEvents, (success) => {
+                // Done! The daily review now generates the Summary and all medical fields.
+                FinalizeBackstory(pawn, coreComp);
+            }, true); // isForced = true
         }
 
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
         //  Finalization
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
 
         /// <summary>
         /// Assembles the dynamic backstory from stored memories (no extra LLM call needed).
@@ -448,12 +477,22 @@ Current Traits: {traits}
             string title = "Backstory Discovered";
             string text = $"{pawn.Name.ToStringShort} has shared their backstory with you.\n\n" +
                           "Open their Psychology tab to learn more about their past and personality traits.";
-            Find.LetterStack.ReceiveLetter(title, text, LetterDefOf.NeutralEvent, pawn);
+
+            var letter = new RimSynapse.Psychology.UI.ChoiceLetter_OpenPsychology
+            {
+                def = LetterDefOf.NeutralEvent,
+                Label = title,
+                Text = text,
+                lookTargets = pawn,
+                targetPawn = pawn,
+                ID = Find.UniqueIDsManager.GetNextLetterID()
+            };
+            Find.LetterStack.ReceiveLetter(letter);
         }
 
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
         //  Utility: Extract skill info from vanilla BackstoryDef
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ────────────────────────────────────────────────────────
 
         /// <summary>
         /// Formats the skill gains from a BackstoryDef into a human-readable string.
@@ -495,4 +534,5 @@ Current Traits: {traits}
         }
     }
 }
+
 
