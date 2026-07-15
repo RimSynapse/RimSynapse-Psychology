@@ -74,6 +74,34 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
   }
 }";
 
+            string dlcInstructions = "";
+            if (ModsConfig.RoyaltyActive)
+            {
+                dlcInstructions += "\n- Royalty DLC: If the colonist recently gained a title or cast psycasts, evaluate if this develops a royal entitlement complex, class friction, or mental fatigue.";
+            }
+            if (ModsConfig.IdeologyActive)
+            {
+                dlcInstructions += "\n- Ideology DLC: If the colonist recently witnessed a ritual or conversion, evaluate if this triggers a crisis of faith or deepens their fanaticism/zealotry.";
+            }
+            if (ModsConfig.BiotechActive)
+            {
+                dlcInstructions += "\n- Biotech DLC: If the colonist gave birth, was vat-grown, or received gene enhancements, reflect their physical/genetic identity dysphoria or parentage complexes.";
+            }
+            if (ModsConfig.AnomalyActive)
+            {
+                dlcInstructions += "\n- Anomaly DLC: If the colonist has void/entity exposure tags in their memories, let it warp their cognitive profile towards void obsession or paranoia.";
+            }
+            if (pawn.Map != null && pawn.Map.Biome != null && pawn.Map.Biome.defName.IndexOf("Space", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                dlcInstructions += "\n- Save Our Ship 2: The colonist is currently in orbit/space. Reflect the psychological impact of cosmic isolation and void melancholy.";
+            }
+
+            if (!string.IsNullOrEmpty(dlcInstructions))
+            {
+                systemPrompt = systemPrompt.Replace("You MUST analyze the 'Tags' attached to their recent memories.",
+                    "You MUST analyze the 'Tags' attached to their recent memories." + dlcInstructions);
+            }
+
             string recentEvents = dailyEvents == null || dailyEvents.Count == 0 
                 ? "No significant memories today." 
                 : string.Join("\n", dailyEvents.Select(e => $"- {e.summary} [Tags: {string.Join(", ", e.tags)}]"));
