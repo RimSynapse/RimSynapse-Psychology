@@ -1,5 +1,5 @@
 [h1]RimSynapse - Psychology[/h1]
-[b]📚 [url=https://github.com/RimSynapse/RimSynapse-Psychology/wiki]Official Wiki &amp; Documentation[/url][/b]
+[b]📚 [url=https://github.com/RimSynapse/RimSynapse-Psychology/wiki]Official Wiki and Documentation[/url][/b]
 
 [b]Companion Mod for RimSynapse. Requires RimSynapse - Core.[/b]
 Brings your colonists to life by giving them evolving memories, complex interpersonal trust, therapeutic sessions, and trauma responses. 
@@ -7,8 +7,8 @@ Brings your colonists to life by giving them evolving memories, complex interper
 [h2]Current Features[/h2]
 [list]
 [*] [b]Dynamic Personality Traits:[/b] The 24-hour psychological evaluation tracks profound life events. Pawns can dynamically gain or lose RimWorld traits (such as gaining [i]Bloodlust[/i] after a brutal raid, or losing [i]Kind[/i]) based on LLM analysis of their rolling short-term memory.
-[*] [b]Trust &amp; Familiarity System:[/b] Replaces vanilla's rigid opinion system with dynamic Trust (-100 to 100) and Familiarity (0 to 100) values. Vanilla [i]OpinionOf[/i] is scaled down by 50%, with the custom Trust metric contributing the remaining 50% weight.
-[*] [b]PTSD &amp; Trauma Breaks:[/b] A new mental state, [i]Trauma Trigger[/i], causes pawns with severe negative memories to blindly fire their weapon at surrounding doors, walls, or loud noises before cowering in fear. Hitting a living creature snaps them out of it.
+[*] [b]Trust and Familiarity System:[/b] Replaces vanilla's rigid opinion system with dynamic Trust (-100 to 100) and Familiarity (0 to 100) values. Vanilla [i]OpinionOf[/i] is scaled down by 50%, with the custom Trust metric contributing the remaining 50% weight.
+[*] [b]PTSD and Trauma Breaks:[/b] A new mental state, [i]Trauma Trigger[/i], causes pawns with severe negative memories to blindly fire their weapon at surrounding doors, walls, or loud noises before cowering in fear. Hitting a living creature snaps them out of it.
 [*] [b]Player-Driven Therapy:[/b] Right-click pawns to initiate a Therapy Session. Act as a "Guiding Hand" and manually type out the initiating pawn's dialogue, or let the LLM resolve the conversation in the background based on their Intelligence, Social skill, and Ideology.
 [*] [b]Opportunistic Euphoria:[/b] Pawns who maintain an extremely high mood (>90%) for a sustained 24 in-game hours will automatically generate a positive core memory.
 [*] [b]Ritual Remarks:[/b] Colonists pull from their LLM relationship memories to deliver personalized Vows during marriages and Eulogies during funerals.
@@ -18,7 +18,7 @@ Brings your colonists to life by giving them evolving memories, complex interper
 
 [h2]Planned Upcoming Features[/h2]
 [list]
-[*] [b]Couples Counseling &amp; Dynamic Romance:[/b] Breakups and romances driven entirely by shared memories and psychological compatibility rather than RNG.
+[*] [b]Couples Counseling and Dynamic Romance:[/b] Breakups and romances driven entirely by shared memories and psychological compatibility rather than RNG.
 [*] [b]LLM-Generated Phobias:[/b] Pawns who suffer specific traumas (e.g., severe burns, insectoid attacks) may develop targeted phobias that alter their pathing and combat behavior.
 [*] [b]Group Therapy:[/b] Let your highest-social pawn lead group sessions to mass-resolve colony-wide trauma after devastating events.
 [*] [b]Psychological Addictions:[/b] Pawns may turn to specific drugs as a coping mechanism for specific negative memories.
