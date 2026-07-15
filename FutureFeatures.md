@@ -29,6 +29,13 @@ This document outlines the architectural roadmap, completed achievements, and ba
 - Implemented the daily clinical review queue (`QueueDailyPsychologyReview`) when pawns sleep, updating their personality profiles and evaluating dynamic trait changes.
 - Added a player-facing **"Force Psych Review"** button in [Dialog_PawnPsychology.cs](file:///d:/github/RimSynapse-Psychology/Source/UI/Dialog_PawnPsychology.cs) to queue assessments early.
 
+### Expansion DLC Integrations (Features 7 to 11)
+- **Royalty**: Hooks nobility title awards (`AwardTitle`) and psycasts (`Ability.Activate`) to record title complexes and psycast usage.
+- **Ideology**: Intercepts ritual conclusions (`RitualOutcomeEffectWorker.Apply` via `positivityIndex`) and conversion events (`SetIdeo` using private field traversing) to track spiritual shifts.
+- **Biotech**: Hooks births (`DoBirth`) and gene modifications (`ImplantXenogerm`) to capture parental and genetic dysphoria states.
+- **Anomaly**: Hooks damage from entity factions (`PostApplyDamage` checking entity categories) and monolith studies (`CompStudiableMonolith.Study`) to track void obsessions.
+- **Save Our Ship 2 / Odyssey**: Detects spatial orbit biomes to dynamically inject space melancholy prompt guidelines during daily clinical reviews.
+
 ---
 
 ## 2. Future Backlog Features
@@ -42,10 +49,3 @@ This document outlines the architectural roadmap, completed achievements, and ba
 ### Interpersonal Pawn-to-Pawn Therapy Sessions (Feature 6)
 - Implement a right-click order option for players to direct a counselor to perform therapy on a target.
 - Target can say "no" (if busy, or if their opinion index/relationship value of the therapist is low), except for prisoners and slaves who must comply.
-
-### Expansion DLC Integrations (Features 7 to 11)
-- **Royalty**: Generate Title complexes and memories regarding titles or using powerful psycasts.
-- **Ideology**: Connect spiritual rebirth memories and crisis of faith triggers to ritual outcomes.
-- **Biotech**: Capture genetic modification dysphoria, birth, or vat-grown trauma.
-- **Anomaly**: Implement Void Taint tags and cosmic horror PTSD triggers.
-- **Odyssey**: Add space melancholic memories for pawns who leave the planet.
