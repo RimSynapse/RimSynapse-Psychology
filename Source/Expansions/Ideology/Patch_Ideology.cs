@@ -8,26 +8,29 @@ using RimSynapse.Models;
 
 namespace RimSynapse.Psychology.Patches
 {
-    [HarmonyPatch(typeof(RitualOutcomeEffectWorker), "Apply")]
-    public static class Patch_RitualOutcomeEffectWorker_Apply
+    [HarmonyPatch(typeof(LordJob_Ritual), "ApplyOutcome")]
+    public static class Patch_LordJob_Ritual_ApplyOutcome
     {
-        public static void Postfix(RitualOutcomeEffectWorker __instance, float progress, Dictionary<Pawn, int> totalOutcomeProgress, LordJob_Ritual jobRitual)
+        [HarmonyPostfix]
+        public static void Postfix(LordJob_Ritual __instance, float progress, Precept_Ritual ___ritual)
         {
             if (!ModsConfig.IdeologyActive) return;
-            if (jobRitual == null) return;
+            if (__instance == null) return;
 
-            string ritualLabel = jobRitual.RitualLabel;
+            string ritualLabel = __instance.RitualLabel;
             string outcomeLabel = "completed";
 
             try
             {
-                // Try to determine the outcome def name
-                var outcome = __instance.def.outcomeChances
-                    .OrderBy(o => Math.Abs(o.positivityIndex - progress))
-                    .FirstOrDefault();
-                if (outcome != null)
+                if (___ritual != null && ___ritual.outcomeEffect != null && ___ritual.outcomeEffect.def != null)
                 {
-                    outcomeLabel = outcome.label;
+                    var outcome = ___ritual.outcomeEffect.def.outcomeChances
+                        .OrderBy(o => Math.Abs(o.positivityIndex - progress))
+                        .FirstOrDefault();
+                    if (outcome != null)
+                    {
+                        outcomeLabel = outcome.label;
+                    }
                 }
             }
             catch {}
@@ -49,7 +52,7 @@ namespace RimSynapse.Psychology.Patches
     [HarmonyPatch(typeof(Pawn_IdeoTracker), "SetIdeo")]
     public static class Patch_Pawn_IdeoTracker_SetIdeo
     {
-        public static void Postfix(Pawn_IdeoTracker __instance, Ideo newIdeo)
+        public static void Postfix(Pawn_IdeoTracker __instance, Ideo ideo)
         {
             if (!ModsConfig.IdeologyActive) return;
             Pawn pawn = HarmonyLib.Traverse.Create(__instance).Field("pawn").GetValue<Pawn>();
@@ -61,7 +64,7 @@ namespace RimSynapse.Psychology.Patches
                 coreComp.EnqueuePastEvent(new PastEvent
                 {
                     gameTick = Find.TickManager.TicksGame,
-                    eventDescription = $"{pawn.Name.ToStringShort} experienced a crisis of faith and converted to the ideology '{newIdeo?.name ?? "Unknown"}'.",
+                    eventDescription = $"{pawn.Name.ToStringShort} experienced a crisis of faith and converted to the ideology '{ideo?.name ?? "Unknown"}'.",
                     pawnSnapshots = new System.Collections.Generic.Dictionary<string, string>(),
                     category = "Ideology"
                 });

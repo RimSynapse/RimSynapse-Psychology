@@ -6,12 +6,14 @@ using RimSynapse.Models;
 
 namespace RimSynapse.Psychology.Patches
 {
-    [HarmonyPatch(typeof(Pawn_RoyaltyTracker), "AwardTitle")]
-    public static class Patch_Pawn_RoyaltyTracker_AwardTitle
+    [HarmonyPatch(typeof(Pawn_RoyaltyTracker), "OnPostTitleChanged")]
+    public static class Patch_Pawn_RoyaltyTracker_OnPostTitleChanged
     {
-        public static void Postfix(Pawn_RoyaltyTracker __instance, Faction faction, RoyalTitleDef titleDef)
+        [HarmonyPostfix]
+        public static void Postfix(Pawn_RoyaltyTracker __instance, Faction faction, RoyalTitleDef prevTitle, RoyalTitleDef newTitle)
         {
             if (!ModsConfig.RoyaltyActive) return;
+            if (newTitle == null) return;
             Pawn pawn = __instance.pawn;
             if (pawn == null || !pawn.IsColonist) return;
 
@@ -21,7 +23,7 @@ namespace RimSynapse.Psychology.Patches
                 coreComp.EnqueuePastEvent(new PastEvent
                 {
                     gameTick = Find.TickManager.TicksGame,
-                    eventDescription = $"{pawn.Name.ToStringShort} was awarded the noble title of {titleDef.label} by Faction {faction?.Name ?? "Unknown"}.",
+                    eventDescription = $"{pawn.Name.ToStringShort} was awarded the noble title of {newTitle.label} by Faction {faction?.Name ?? "Unknown"}.",
                     pawnSnapshots = new System.Collections.Generic.Dictionary<string, string>(),
                     category = "Royalty"
                 });

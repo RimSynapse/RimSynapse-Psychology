@@ -6,7 +6,7 @@ using RimSynapse.Models;
 
 namespace RimSynapse.Psychology.Patches
 {
-    [HarmonyPatch(typeof(Verse.Hediff_Pregnant), "DoBirth")]
+    [HarmonyPatch(typeof(Verse.Hediff_Pregnant), "DoBirthSpawn")]
     public static class Patch_Hediff_Pregnant_DoBirth
     {
         public static void Postfix(Pawn mother, Pawn father)
@@ -28,7 +28,7 @@ namespace RimSynapse.Psychology.Patches
         }
     }
 
-    [HarmonyPatch(typeof(RimWorld.GeneUtility), "ImplantXenogerm")]
+    [HarmonyPatch(typeof(RimWorld.GeneUtility), "ImplantXenogermItem")]
     public static class Patch_GeneUtility_ImplantXenogerm
     {
         public static void Postfix(Pawn pawn)

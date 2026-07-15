@@ -48,10 +48,10 @@ namespace RimSynapse.Psychology.Patches
     [HarmonyPatch(typeof(RimWorld.CompStudiableMonolith), "Study", new Type[] { typeof(Pawn), typeof(float), typeof(float) })]
     public static class Patch_CompVoidMonolith_Notify_Studied
     {
-        public static void Postfix(RimWorld.CompStudiableMonolith __instance, Pawn studyer)
+        public static void Postfix(RimWorld.CompStudiableMonolith __instance, Pawn studier)
         {
             if (!ModsConfig.AnomalyActive) return;
-            if (studyer == null || !studyer.IsColonist) return;
+            if (studier == null || !studier.IsColonist) return;
 
             var coreComp = Find.World?.GetComponent<RimSynapse.SynapseCoreWorldComponent>();
             if (coreComp != null)
@@ -59,7 +59,7 @@ namespace RimSynapse.Psychology.Patches
                 coreComp.EnqueuePastEvent(new PastEvent
                 {
                     gameTick = Find.TickManager.TicksGame,
-                    eventDescription = $"{studyer.Name.ToStringShort} studied the Void Monolith.",
+                    eventDescription = $"{studier.Name.ToStringShort} studied the Void Monolith.",
                     pawnSnapshots = new System.Collections.Generic.Dictionary<string, string>(),
                     category = "Anomaly"
                 });
