@@ -12,4 +12,15 @@
     </degreeDatas>
   </TraitDef>
 
+  <TraitDef>
+    <defName>Synapse_PTSD</defName>
+    <commonality>0</commonality> <!-- Only assigned dynamically by AI -->
+    <degreeDatas>
+      <li>
+        <label>PTSD</label>
+        <description>{PAWN_nameDef} suffers from Post-Traumatic Stress Disorder. Lingering combat memories or traumatic injuries cause them to experience sudden, wild shooting triggers followed by periods of catatonic fear.</description>
+      </li>
+    </degreeDatas>
+  </TraitDef>
+
 </Defs>

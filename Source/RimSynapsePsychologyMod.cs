@@ -34,6 +34,8 @@ namespace RimSynapse.Psychology
             
             // Register with Core
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
+            API.SynapsePsychologyTools.RegisterTools();
+            SynapseToolRegistry.CustomBreakHandler = API.SynapsePsychologyTools.HandleCustomBreak;
             
             // Register opportunistic background tasks with scheduling metadata
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory",
