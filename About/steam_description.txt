@@ -1,5 +1,5 @@
 [h1]RimSynapse - Psychology[/h1]
-[b]📚 [url=https://github.com/RimSynapse/RimSynapse-Psychology/wiki]Official Wiki and Documentation[/url][/b]
+[b]📚 [url=https://github.com/RimSynapse/Psychology/wiki]Official Wiki and Documentation[/url][/b]
 
 [b]Companion Mod for RimSynapse. Requires RimSynapse - Core.[/b]
 Brings your colonists to life by giving them evolving memories, complex interpersonal trust, therapeutic sessions, and trauma responses. 
