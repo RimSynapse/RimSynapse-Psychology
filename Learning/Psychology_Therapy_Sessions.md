@@ -21,3 +21,22 @@ At the end of the session, both pawns will generate an opportunistic memory abou
 ## Expansion Dependencies
 > [!NOTE]
 > **Ideology Requirement**: During background (auto) resolution, pawns heavily leverage their faith and precepts to counsel or argue with one another. This deep spiritual integration requires the **Ideology DLC**. Without it, pawns will fall back to their standard personality traits.
+
+## Curable Traits & Desensitization Therapy
+
+Through successful therapy sessions, target pawns have a chance to be cured of severe psychological burdens or traits.
+
+### Curable Traits:
+- **`Depressive` / `Pessimist`**: Negative degrees (`-2` and `-1`) of the vanilla `NaturalMood` trait.
+- **`Volatile` / `Nervous`**: Negative degrees (`-2` and `-1`) of the vanilla `Nerves` trait.
+- **`Psychopath`**: Curable unless locked by a homicidal backstory (like Assassin or Killer).
+- **`Bloodlust`**: Curable unless locked by a homicidal backstory (like Assassin or Killer).
+- **`Synapse_PTSD`**: Custom PTSD trait representing deep combat or environmental trauma.
+
+### PTSD Target Shooting Desensitization:
+In addition to formal therapy sessions, pawns suffering from the custom **`Synapse_PTSD`** trait can be desensitized and cured through supervised target practice:
+- **Supervision Rule**: A friendly supervisor/coach (awake, and having Social skill >= 8 or Shooting skill >= 8) must be within 12 cells of the patient.
+- **Trigger**: When the PTSD pawn successfully fires a ranged weapon.
+- **Cure Chance**: Each shot has a **0.5% chance** to desensitize and permanently cure their PTSD.
+- **Feedback**: A positive top-screen notification is triggered in-game, and a permanent `TraitLost` memory is logged to their Dynamic Trait History Timeline.
+

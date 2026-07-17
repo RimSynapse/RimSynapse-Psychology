@@ -49,7 +49,7 @@
   <MentalStateDef>
     <defName>Synapse_SuicidalWeapon</defName>
     <label>suicidal (weapon)</label>
-    <stateClass>Verse.MentalState</stateClass>
+    <stateClass>MentalState</stateClass>
     <category>Malicious</category>
     <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
     <baseInspectLine>Mental state: Suicidal (Ending their life)</baseInspectLine>

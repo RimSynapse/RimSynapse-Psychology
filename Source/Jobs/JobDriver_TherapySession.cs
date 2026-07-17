@@ -229,23 +229,33 @@ namespace RimSynapse.Psychology.Jobs
         {
             string defName = t.def.defName;
             
-            // List of psychological traits
-            if (defName == "Synapse_PTSD" || defName == "Depressive" || defName == "Nervous" || 
-                defName == "Volatile" || defName == "Psychopath" || defName == "Bloodlust" || defName == "Pessimist")
+            // Custom PTSD
+            if (defName == "Synapse_PTSD") return true;
+            
+            // Vanilla Psychopath and Bloodlust
+            if (defName == "Psychopath" || defName == "Bloodlust")
             {
                 // Check if backstory locked
-                string childId = pawn.story.Childhood?.identifier ?? "";
-                string adultId = pawn.story.Adulthood?.identifier ?? "";
+                string childId = pawn.story?.Childhood?.identifier ?? "";
+                string adultId = pawn.story?.Adulthood?.identifier ?? "";
                 
-                if (defName == "Psychopath" || defName == "Bloodlust")
+                if (childId.Contains("Assassin") || adultId.Contains("Assassin") || 
+                    childId.Contains("Killer") || adultId.Contains("Killer"))
                 {
-                    if (childId.Contains("Assassin") || adultId.Contains("Assassin") || 
-                        childId.Contains("Killer") || adultId.Contains("Killer"))
-                    {
-                        return false; // Locked by homicidal backstory
-                    }
+                    return false; // Locked by homicidal backstory
                 }
-                
+                return true;
+            }
+            
+            // Vanilla NaturalMood (Depressive = -2, Pessimist = -1)
+            if (defName == "NaturalMood" && (t.Degree == -2 || t.Degree == -1))
+            {
+                return true;
+            }
+            
+            // Vanilla Nerves (Volatile = -2, Nervous = -1)
+            if (defName == "Nerves" && (t.Degree == -2 || t.Degree == -1))
+            {
                 return true;
             }
             
