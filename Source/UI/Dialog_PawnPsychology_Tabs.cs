@@ -82,6 +82,24 @@ namespace RimSynapse.Psychology.UI
                 totalFormHeight += 22f + Text.CalcHeight(val, rect.width - 30f) + 20f;
             }
             totalFormHeight += 50f; // Extra for personality summary
+            
+            // Calculate Patient History height
+            var historyMemories = coreComp.memories.Where(m => m.tags != null && m.tags.Contains("TraitShift")).OrderBy(m => m.absTick).ToList();
+            totalFormHeight += 22f + 10f; // Header
+            if (historyMemories.Count == 0)
+            {
+                totalFormHeight += Text.CalcHeight("No major psychological changes recorded.", rect.width - 30f) + 20f;
+            }
+            else
+            {
+                foreach (var m in historyMemories)
+                {
+                    string dateStr = GenDate.DateFullStringAt(m.absTick, Find.WorldGrid.LongLatOf(pawn.Tile));
+                    string entry = $"[{dateStr}] {m.summary}";
+                    totalFormHeight += Text.CalcHeight(entry, rect.width - 30f) + 5f;
+                }
+                totalFormHeight += 20f;
+            }
 
             Rect scrollRect = new Rect(rect.x, profileY, rect.width, rect.yMax - profileY);
             Rect viewRect = new Rect(0f, 0f, rect.width - 20f, totalFormHeight);
@@ -129,6 +147,36 @@ namespace RimSynapse.Psychology.UI
                 Widgets.DrawLineHorizontal(rect.x, formY, viewRect.width);
                 formY += 10f;
             }
+            
+            // === Patient History (Trait Timeline) ===
+            GUI.color = new Color(0.7f, 0.9f, 1f);
+            Text.Font = GameFont.Small;
+            Rect historyHeaderRect = new Rect(rect.x, formY, viewRect.width, 22f);
+            Widgets.Label(historyHeaderRect, "<b>Patient History</b>");
+            GUI.color = Color.white;
+            formY += 22f;
+            
+            if (historyMemories.Count == 0)
+            {
+                float textHeight = Text.CalcHeight("No major psychological changes recorded.", viewRect.width);
+                Rect valRect = new Rect(rect.x, formY, viewRect.width, textHeight);
+                Widgets.Label(valRect, "No major psychological changes recorded.");
+                formY += textHeight + 10f;
+            }
+            else
+            {
+                foreach (var m in historyMemories)
+                {
+                    string dateStr = GenDate.DateFullStringAt(m.absTick, Find.WorldGrid.LongLatOf(pawn.Tile));
+                    string entry = $"[{dateStr}] {m.summary}";
+                    float entryHeight = Text.CalcHeight(entry, viewRect.width);
+                    Widgets.Label(new Rect(rect.x, formY, viewRect.width, entryHeight), entry);
+                    formY += entryHeight + 5f;
+                }
+                formY += 15f;
+            }
+            
+            Widgets.DrawLineHorizontal(rect.x, formY, viewRect.width);
             
             Widgets.EndScrollView();
         }

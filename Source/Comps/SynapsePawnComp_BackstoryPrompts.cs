@@ -34,6 +34,9 @@ namespace RimSynapse.Psychology.Comps
             {
                 factionContext = $"\nBackstory Categories: {string.Join(", ", pawn.kindDef.backstoryCategories)}";
             }
+            
+            // Allow Core/Factions to inject extra context (like Ideology)
+            string crossModContext = RimSynapse.SynapseCoreContext.GatherGenericContext(pawn, "BackstoryChildhood");
 
             string systemPrompt = @"You are writing a vivid first-person memory for a colonist in the RimWorld universe.
 This memory is from their CHILDHOOD. It should be a specific, concrete scene — not a summary.
@@ -66,7 +69,7 @@ Faction Background: {factionType}
 Childhood Backstory: ""{childhoodTitle}""
 Vanilla Description: ""{childhoodDesc}""
 Skill Bonuses from Childhood: {skillBonuses}
-{(string.IsNullOrEmpty(disabledWork) ? "" : $"Disabled Work Types: {disabledWork}\n")}{factionContext}
+{(string.IsNullOrEmpty(disabledWork) ? "" : $"Disabled Work Types: {disabledWork}\n")}{factionContext}{crossModContext}
 Write a vivid childhood memory grounded in these skills.";
 
             var options = new ChatOptions { priority = 1, requestName = "Childhood Backstory", targetName = pawn.Name.ToStringShort };
@@ -153,6 +156,9 @@ Write a vivid childhood memory grounded in these skills.";
             string childhoodContext = childhoodMemory != null
                 ? $"\nChildhood Memory (already generated — maintain continuity):\n\"{childhoodMemory.summary}\""
                 : "";
+                
+            // Allow Core/Factions to inject extra context
+            string crossModContext = RimSynapse.SynapseCoreContext.GatherGenericContext(pawn, "BackstoryAdulthood");
 
             string systemPrompt = @"You are writing a vivid first-person memory for a colonist in the RimWorld universe.
 This memory is from their ADULTHOOD. It should be a specific, concrete scene — not a summary.
@@ -178,7 +184,7 @@ Gender: {pawn.gender}
 Adulthood Backstory: ""{adulthoodTitle}""
 Vanilla Description: ""{adulthoodDesc}""
 Skill Bonuses from Adulthood: {skillBonuses}
-{(string.IsNullOrEmpty(disabledWork) ? "" : $"Disabled Work Types: {disabledWork}\n")}{childhoodContext}
+{(string.IsNullOrEmpty(disabledWork) ? "" : $"Disabled Work Types: {disabledWork}\n")}{childhoodContext}{crossModContext}
 
 Write a vivid adulthood memory grounded in these skills.";
 
@@ -255,6 +261,9 @@ Write a vivid adulthood memory grounded in these skills.";
             string memoriesContext = "";
             if (childhoodMem != null) memoriesContext += $"Childhood Memory:\n\"{childhoodMem.summary}\"\n\n";
             if (adulthoodMem != null) memoriesContext += $"Adulthood Memory:\n\"{adulthoodMem.summary}\"\n\n";
+            
+            // Allow Core/Factions to inject extra context
+            string crossModContext = RimSynapse.SynapseCoreContext.GatherGenericContext(pawn, "PersonalityProfile");
 
             string systemPrompt = @"You are analyzing the psychology of a RimWorld colonist based on their life memories.
 Given their childhood memory, adulthood memory, and current personality traits, synthesize a psychological profile.
@@ -279,10 +288,10 @@ You MUST respond in valid JSON:
             string userMessage = $@"Colonist: {pawn.Name.ToStringShort}
 Gender: {pawn.gender}
 Age: {pawn.ageTracker?.AgeBiologicalYears ?? 0}
-Gender: {pawn.gender}
 Current Traits: {traits}
 
-{memoriesContext}Synthesize their psychological profile.";
+{memoriesContext}{crossModContext}
+Synthesize their psychological profile.";
 
             var options = new ChatOptions { priority = 3, requestName = "Psychological Profile", targetName = pawn.Name.ToStringShort };
 

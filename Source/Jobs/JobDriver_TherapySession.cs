@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using RimWorld;
 using Verse;
 using Verse.AI;
-using RimSynapse.Psychology.UI;
+using RimSynapse.Psychology.Comps;
 
 namespace RimSynapse.Psychology.Jobs
 {
@@ -12,9 +12,6 @@ namespace RimSynapse.Psychology.Jobs
         private Thing SeatA => job.GetTarget(TargetIndex.B).Thing;
         private Thing SeatB => job.GetTarget(TargetIndex.C).Thing;
 
-        public bool backgroundResolution = false;
-        private List<string> backgroundTranscript;
-        
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return pawn.Reserve(TargetPawn, job, 1, -1, null, errorOnFailed);
@@ -31,7 +28,6 @@ namespace RimSynapse.Psychology.Jobs
             {
                 initAction = delegate
                 {
-                    // Find a gather spot or seats nearby TargetPawn
                     Thing seat1 = GenClosest.ClosestThingReachable(TargetPawn.Position, pawn.Map, ThingRequest.ForGroup(ThingRequestGroup.BuildingArtificial), PathEndMode.OnCell, TraverseParms.For(pawn), 20f, 
                         t => t.def.building != null && t.def.building.isSittable && (t as RimWorld.Building_Bed) == null && pawn.CanReserve(t) && TargetPawn.CanReserve(t));
                     
@@ -49,7 +45,6 @@ namespace RimSynapse.Psychology.Jobs
                     }
                     else
                     {
-                        // Fallback to just standing near each other
                         job.SetTarget(TargetIndex.B, pawn.Position);
                         job.SetTarget(TargetIndex.C, TargetPawn.Position);
                     }
@@ -62,11 +57,10 @@ namespace RimSynapse.Psychology.Jobs
             Toil chatToil = new Toil();
             chatToil.initAction = delegate
             {
-                // Force target to wait and face us or sit
                 Job waitJob = null;
                 if (SeatB != null && SeatB.def != null && SeatB.def.building != null && SeatB.def.building.isSittable)
                 {
-                    waitJob = JobMaker.MakeJob(JobDefOf.Wait_Combat, 4000); // Replaced SitFacing
+                    waitJob = JobMaker.MakeJob(JobDefOf.Wait_Combat, 4000); 
                     TargetPawn.jobs.StartJob(waitJob, JobCondition.InterruptForced);
                     
                     pawn.pather.StartPath(SeatA, PathEndMode.OnCell);
@@ -78,10 +72,6 @@ namespace RimSynapse.Psychology.Jobs
                     pawn.rotationTracker.FaceCell(TargetPawn.Position);
                     TargetPawn.rotationTracker.FaceCell(pawn.Position);
                 }
-
-                // Open the Therapy UI Window
-                var window = new Dialog_TherapySession(pawn, TargetPawn, this);
-                Find.WindowStack.Add(window);
             };
             
             chatToil.tickAction = delegate
@@ -92,80 +82,160 @@ namespace RimSynapse.Psychology.Jobs
                     TargetPawn.rotationTracker.FaceCell(pawn.Position);
                 }
                 
-                // Tick joy for both
                 pawn.needs?.joy?.GainJoy(0.0001f, JoyKindDefOf.Social);
                 TargetPawn.needs?.joy?.GainJoy(0.0001f, JoyKindDefOf.Social);
-
-                if (backgroundResolution)
-                {
-                    // Randomly add a log in the background every once in a while to simulate talking,
-                    // but we will offload the real completion to the API at the end of the job
-                    if (Find.TickManager.TicksGame % 500 == 0)
-                    {
-                        backgroundTranscript.Add($"[System] Background chat ticked at {Find.TickManager.TicksGame}");
-                    }
-                }
             };
 
             chatToil.defaultCompleteMode = ToilCompleteMode.Delay;
-            chatToil.defaultDuration = 5000; // ~2 in-game hours
-            // chatToil.socialMode = RecordWorker_TimeGettingJoy.SocialMode.Normal;
+            chatToil.defaultDuration = 5000;
 
             chatToil.AddFinishAction(() => 
             {
-                if (backgroundResolution)
-                {
-                    SaveTranscriptAndEnd(backgroundTranscript);
-                }
+                CalculateTherapyOutcome();
             });
             
             yield return chatToil;
         }
 
-        public void EnableBackgroundResolution(List<string> currentLog)
+        private void CalculateTherapyOutcome()
         {
-            backgroundResolution = true;
-            backgroundTranscript = currentLog;
-            Messages.Message($"Therapy session pushed to background. It will conclude in a few hours.", MessageTypeDefOf.PositiveEvent, false);
+            if (TargetPawn.Dead || pawn.Dead) return;
+
+            float baseChance = 0.30f; // 30% Base
+            
+            // Therapist Skill
+            int socialSkill = pawn.skills != null ? pawn.skills.GetSkill(SkillDefOf.Social).Level : 0;
+            float skillFactor = socialSkill * 0.03f;
+            
+            // Privacy Bonus
+            float privacyBonus = 0f;
+            var room = pawn.GetRoom();
+            if (room != null)
+            {
+                bool isPatientRoom = TargetPawn.ownership != null && TargetPawn.ownership.OwnedRoom == room;
+                bool isSecure = room.Role != RoomRoleDefOf.None && room.RegionCount > 0;
+                
+                int pawnCount = 0;
+                foreach (Thing t in room.ContainedAndAdjacentThings)
+                {
+                    if (t is Pawn p && p.RaceProps.Humanlike && p.Awake())
+                        pawnCount++;
+                }
+                
+                if (isPatientRoom || (isSecure && pawnCount == 2))
+                {
+                    privacyBonus = 0.20f; // 20% bonus for privacy
+                }
+            }
+
+            // Trust Factor
+            float trustBonus = 0f;
+            var tComp = TargetPawn.GetComp<SynapsePawnComp>();
+            if (tComp != null && tComp.socialNetwork != null)
+            {
+                string pId = pawn.GetUniqueLoadID();
+                if (tComp.socialNetwork.ContainsKey(pId))
+                {
+                    float trust = tComp.socialNetwork[pId].trust; // -100 to 100
+                    trustBonus = (trust / 100f) * 0.15f; // Up to +15% or -15%
+                }
+            }
+
+            float successChance = baseChance + skillFactor + privacyBonus + trustBonus;
+            
+            bool success = Rand.Chance(successChance);
+            float moodPct = TargetPawn.needs != null && TargetPawn.needs.mood != null ? TargetPawn.needs.mood.CurLevelPercentage : 0.5f;
+
+            if (success)
+            {
+                // Apply successful thought with inverse mood scaling
+                var successDef = DefDatabase<ThoughtDef>.GetNamedSilentFail("Synapse_SuccessfulTherapy");
+                if (successDef != null && TargetPawn.needs != null && TargetPawn.needs.mood != null)
+                {
+                    var memory = (Thought_Memory)ThoughtMaker.MakeThought(successDef);
+                    // If miserable (0%), power factor = 2.0. If happy (100%), power factor = ~0.0.
+                    memory.moodPowerFactor = (1.0f - moodPct) * 2f; 
+                    TargetPawn.needs.mood.thoughts.memories.TryGainMemory(memory);
+                }
+
+                MoteMaker.ThrowText(TargetPawn.DrawPos, TargetPawn.Map, "Therapy Successful", 4f);
+                
+                // Attempt to cure a trait
+                float cureChance = 0.10f * moodPct; // Happier = higher cure chance
+                if (Rand.Chance(cureChance) && TargetPawn.story != null && TargetPawn.story.traits != null)
+                {
+                    List<Trait> curableTraits = new List<Trait>();
+                    foreach (Trait t in TargetPawn.story.traits.allTraits)
+                    {
+                        if (IsCurablePsychologicalTrait(TargetPawn, t))
+                        {
+                            curableTraits.Add(t);
+                        }
+                    }
+
+                    if (curableTraits.Count > 0)
+                    {
+                        Trait curedTrait = curableTraits.RandomElement();
+                        TargetPawn.story.traits.allTraits.Remove(curedTrait);
+                        Messages.Message($"{TargetPawn.NameShortColored} was cured of {curedTrait.Label} thanks to successful therapy from {pawn.NameShortColored}!", TargetPawn, MessageTypeDefOf.PositiveEvent);
+                        
+                        // Inject into Trait History Timeline
+                        var coreComp = TargetPawn.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+                        if (coreComp != null)
+                        {
+                            long currentTick = Find.TickManager?.TicksAbs ?? 0;
+                            coreComp.memories.Add(new RimSynapse.Models.WeightedMemory
+                            {
+                                summary = $"Cured of {curedTrait.Label} through successful therapy.",
+                                weight = 10f,
+                                baseWeight = 10f,
+                                decayRate = 0f,
+                                isLongTerm = true, // Timeline memories never decay
+                                tags = new List<string> { "TraitShift", "Therapy", "Recovery" },
+                                memoryType = "TraitLost",
+                                absTick = currentTick,
+                                gameTick = Find.TickManager?.TicksGame ?? 0
+                            });
+                        }
+                    }
+                }
+            }
+            else
+            {
+                var failDef = DefDatabase<ThoughtDef>.GetNamedSilentFail("Synapse_AwkwardTherapy");
+                if (failDef != null && TargetPawn.needs != null && TargetPawn.needs.mood != null)
+                {
+                    TargetPawn.needs.mood.thoughts.memories.TryGainMemory(failDef);
+                }
+                MoteMaker.ThrowText(TargetPawn.DrawPos, TargetPawn.Map, "Therapy Failed", 4f);
+            }
         }
 
-        public void EndJobManually(List<string> finalLog)
+        private bool IsCurablePsychologicalTrait(Pawn pawn, Trait t)
         {
-            SaveTranscriptAndEnd(finalLog);
-            this.EndJobWith(JobCondition.Succeeded);
-            if (TargetPawn.jobs.curJob?.def == JobDefOf.Wait_Combat) // Removed SitFacing check
+            string defName = t.def.defName;
+            
+            // List of psychological traits
+            if (defName == "Synapse_PTSD" || defName == "Depressive" || defName == "Nervous" || 
+                defName == "Volatile" || defName == "Psychopath" || defName == "Bloodlust" || defName == "Pessimist")
             {
-                TargetPawn.jobs.EndCurrentJob(JobCondition.Succeeded);
-            }
-        }
-
-        private void SaveTranscriptAndEnd(List<string> log)
-        {
-            // Save transcript
-            var comp = pawn.TryGetComp<RimSynapse.Psychology.Comps.SynapsePawnComp>();
-            if (comp != null)
-            {
-                comp.therapyTranscripts.Add(new Models.TherapyTranscript
+                // Check if backstory locked
+                string childId = pawn.story.childhood?.identifier ?? "";
+                string adultId = pawn.story.adulthood?.identifier ?? "";
+                
+                if (defName == "Psychopath" || defName == "Bloodlust")
                 {
-                    otherPawnName = TargetPawn.NameShortColored.Resolve(),
-                    sessionTick = Find.TickManager.TicksGame,
-                    lines = new List<string>(log)
-                });
+                    if (childId.Contains("Assassin") || adultId.Contains("Assassin") || 
+                        childId.Contains("Killer") || adultId.Contains("Killer"))
+                    {
+                        return false; // Locked by homicidal backstory
+                    }
+                }
+                
+                return true;
             }
-
-            var tComp = TargetPawn.TryGetComp<RimSynapse.Psychology.Comps.SynapsePawnComp>();
-            if (tComp != null)
-            {
-                tComp.therapyTranscripts.Add(new Models.TherapyTranscript
-                {
-                    otherPawnName = pawn.NameShortColored.Resolve(),
-                    sessionTick = Find.TickManager.TicksGame,
-                    lines = new List<string>(log)
-                });
-            }
-
-            // Fire off API request to summarize key points permanently
-            RimSynapse.Psychology.API.SynapsePsychology.SummarizeTherapySession(pawn, TargetPawn, log);
+            
+            return false;
         }
     }
 }
