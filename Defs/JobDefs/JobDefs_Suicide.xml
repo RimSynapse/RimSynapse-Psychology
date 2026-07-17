@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <JobDef>
+    <defName>Synapse_SuicideSelfHarm</defName>
+    <driverClass>RimSynapse.Psychology.Jobs.JobDriver_SuicideSelfHarm</driverClass>
+    <reportString>ending their life.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+</Defs>

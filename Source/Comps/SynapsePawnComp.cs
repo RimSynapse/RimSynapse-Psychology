@@ -275,7 +275,7 @@ namespace RimSynapse.Psychology.Comps
             if (pawn.story != null)
             {
                 bool isPsychopath = pawn.story.traits.HasTrait(TraitDefOf.Psychopath);
-                if (isPsychopath && (pawn.story.childhood?.identifier?.Contains("Assassin") == true || pawn.story.adulthood?.identifier?.Contains("Assassin") == true))
+                if (isPsychopath && (pawn.story.Childhood?.identifier?.Contains("Assassin") == true || pawn.story.Adulthood?.identifier?.Contains("Assassin") == true))
                 {
                     // This is just an example of a backstory lock.
                     // For now, we won't block the ENTIRE therapy job for a locked trait, because they might still need therapy for mood!

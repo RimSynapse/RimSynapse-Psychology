@@ -39,4 +39,11 @@
     <intensity>Extreme</intensity>
   </MentalBreakDef>
 
+  <MentalBreakDef>
+    <defName>Synapse_SuicidalWeaponBreak</defName>
+    <mentalState>Synapse_SuicidalWeapon</mentalState>
+    <baseCommonality>0</baseCommonality> <!-- Only triggered by LLM -->
+    <intensity>Extreme</intensity>
+  </MentalBreakDef>
+
 </Defs>

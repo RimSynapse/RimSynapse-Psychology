@@ -12,6 +12,20 @@ namespace RimSynapse.Psychology.Jobs
         private Thing SeatA => job.GetTarget(TargetIndex.B).Thing;
         private Thing SeatB => job.GetTarget(TargetIndex.C).Thing;
 
+        public bool backgroundResolution = false;
+        private List<string> backgroundChatLog = null;
+
+        public void EnableBackgroundResolution(List<string> chatLog)
+        {
+            backgroundResolution = true;
+            backgroundChatLog = chatLog;
+        }
+
+        public void EndJobManually(List<string> chatLog)
+        {
+            pawn.jobs.EndCurrentJob(JobCondition.Succeeded);
+        }
+
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return pawn.Reserve(TargetPawn, job, 1, -1, null, errorOnFailed);
@@ -220,8 +234,8 @@ namespace RimSynapse.Psychology.Jobs
                 defName == "Volatile" || defName == "Psychopath" || defName == "Bloodlust" || defName == "Pessimist")
             {
                 // Check if backstory locked
-                string childId = pawn.story.childhood?.identifier ?? "";
-                string adultId = pawn.story.adulthood?.identifier ?? "";
+                string childId = pawn.story.Childhood?.identifier ?? "";
+                string adultId = pawn.story.Adulthood?.identifier ?? "";
                 
                 if (defName == "Psychopath" || defName == "Bloodlust")
                 {
