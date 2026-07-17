@@ -31,12 +31,12 @@ namespace RimSynapse.Psychology.Patches
                             opinion = recipient.relations.OpinionOf(___pawn);
                         }
                         
-                        // Invert trust and opinion to map -100 (max shield) to 100 (zero shield).
-                        float trustInverted = (100f - trust) / 2f; 
-                        float opinionInverted = (100f - opinion) / 2f; 
+                        // Normalize trust and opinion to map -100 (zero shield) to 100 (max shield).
+                        float trustNormalized = (trust + 100f) / 2f; 
+                        float opinionNormalized = (opinion + 100f) / 2f; 
                         
                         // Combine metrics
-                        float shieldPower = (familiarity * 0.5f) + (trustInverted * 0.25f) + (opinionInverted * 0.25f);
+                        float shieldPower = (familiarity * 0.5f) + (trustNormalized * 0.25f) + (opinionNormalized * 0.25f);
                         
                         if (shieldPower > 50f)
                         {
