@@ -26,6 +26,15 @@ namespace RimSynapse.Psychology.Patches
                 // Override the vanilla recovery timer with the AI-driven one
                 __instance.forceRecoverAfterTicks = totalTicks;
             }
+
+            if (__instance.pawn.IsColonist)
+            {
+                var extra = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    { "mentalState", __instance.def?.defName ?? "Unknown" }
+                };
+                RimSynapse.SynapseTriggerManager.TriggerEvent("PawnMentalBreak", __instance.pawn, extra);
+            }
         }
     }
 }

@@ -46,4 +46,19 @@
     <recoveryMessage>{0} has regained their will to live and decided to eat.</recoveryMessage>
   </MentalStateDef>
 
+  <MentalStateDef>
+    <defName>Synapse_SuicidalWeapon</defName>
+    <label>suicidal (weapon)</label>
+    <stateClass>MentalState</stateClass>
+    <category>Malicious</category>
+    <workerClass>RimSynapse.Psychology.MentalStates.MentalStateWorker_Suicidal</workerClass>
+    <baseInspectLine>Mental state: Suicidal (Ending their life)</baseInspectLine>
+    <recoverFromSleep>true</recoverFromSleep>
+    <nameColor>(0.8, 0.2, 0.2)</nameColor>
+    <beginLetterLabel>suicidal</beginLetterLabel>
+    <beginLetter>Unable to bear the pain any longer, {0} has decided to end their life. They are searching for a weapon to kill themselves.</beginLetter>
+    <beginLetterDef>ThreatSmall</beginLetterDef>
+    <recoveryMessage>{0} has regained some hope and stopped their suicide attempt.</recoveryMessage>
+  </MentalStateDef>
+
 </Defs>

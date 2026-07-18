@@ -63,6 +63,10 @@ namespace RimSynapse.Psychology.Comps
         
         public List<RimSynapse.Psychology.Models.TherapyTranscript> therapyTranscripts = new List<RimSynapse.Psychology.Models.TherapyTranscript>();
         
+        // Therapy Readiness State
+        public bool isTherapyReady = true;
+        public string therapyBlockReason = "";
+        
         public int lastJournalUpdateDay = -1;
         public bool isAwaitingJournalUpdate = false;
         public float savedAverageMood = 0.5f;
@@ -168,6 +172,8 @@ namespace RimSynapse.Psychology.Comps
                             // Reset daily tracking immediately so we can start recording the next day
                             dailyMoodAccumulator = 0f;
                             moodSamples = 0;
+                            
+                            CheckTherapyReadiness(pawn);
                         }
                         
                         wasAsleep = isAsleep;
@@ -247,6 +253,38 @@ namespace RimSynapse.Psychology.Comps
                     }
                 };
             }
+        }
+
+        private void CheckTherapyReadiness(Pawn pawn)
+        {
+            if (pawn.needs == null || pawn.needs.mood == null)
+            {
+                isTherapyReady = false;
+                therapyBlockReason = "Incapable of feeling mood.";
+                return;
+            }
+
+            if (pawn.needs.mood.CurLevelPercentage < 0.1f)
+            {
+                isTherapyReady = false;
+                therapyBlockReason = "Mental state too unstable for therapy.";
+                return;
+            }
+            
+            // Check for locked traits
+            if (pawn.story != null)
+            {
+                bool isPsychopath = pawn.story.traits.HasTrait(TraitDefOf.Psychopath);
+                if (isPsychopath && (pawn.story.Childhood?.identifier?.Contains("Assassin") == true || pawn.story.Adulthood?.identifier?.Contains("Assassin") == true))
+                {
+                    // This is just an example of a backstory lock.
+                    // For now, we won't block the ENTIRE therapy job for a locked trait, because they might still need therapy for mood!
+                    // The job itself handles if the trait is cured.
+                }
+            }
+
+            isTherapyReady = true;
+            therapyBlockReason = "";
         }
     }
 }

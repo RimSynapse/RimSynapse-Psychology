@@ -77,6 +77,14 @@
           </subNodes>
         </li>
 
+        <!-- Suicidal: Weapon -->
+        <li Class="ThinkNode_ConditionalMentalState">
+          <state>Synapse_SuicidalWeapon</state>
+          <subNodes>
+            <li Class="RimSynapse.Psychology.MentalStates.JobGiver_SuicidalWeapon" />
+          </subNodes>
+        </li>
+
       </subNodes>
     </thinkRoot>
   </ThinkTreeDef>

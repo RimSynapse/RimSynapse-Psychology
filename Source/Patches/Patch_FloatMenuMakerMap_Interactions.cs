@@ -27,6 +27,14 @@ namespace RimSynapse.Psychology.Patches
                     if (targetPawn.Downed || targetPawn.Dead || targetPawn.InMentalState || !targetPawn.Awake())
                         continue;
 
+                    var targetComp = targetPawn.GetComp<RimSynapse.Psychology.Comps.SynapsePawnComp>();
+                    if (targetComp != null && !targetComp.isTherapyReady)
+                    {
+                        // Add disabled option
+                        __result.Add(new FloatMenuOption($"Cannot initiate therapy ({targetComp.therapyBlockReason})", null, MenuOptionPriority.Default));
+                        continue;
+                    }
+
                     string label = (targetPawn.Faction == pawn.Faction || targetPawn.IsPrisoner || targetPawn.IsSlaveOfColony) 
                         ? "Initiate Therapy Session" 
                         : "Attempt Recruitment / Conversion";

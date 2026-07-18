@@ -34,6 +34,8 @@ namespace RimSynapse.Psychology
             
             // Register with Core
             ModHandle = SynapseCore.Register("RimSynapsePsychology", "RimSynapse Psychology");
+            API.SynapsePsychologyTools.RegisterTools();
+            SynapseToolRegistry.CustomBreakHandler = API.SynapsePsychologyTools.HandleCustomBreak;
             
             // Register opportunistic background tasks with scheduling metadata
             RimSynapse.SynapseClient.RegisterOpportunisticTask(ModHandle, "Psychology_OpportunisticMemory",
@@ -98,6 +100,12 @@ namespace RimSynapse.Psychology
             
             listingStandard.Label($"Sensitivity Minimum Burden Threshold: {Settings.sensitivityThreshold:F1}");
             Settings.sensitivityThreshold = listingStandard.Slider(Settings.sensitivityThreshold, 0.1f, 5.0f);
+
+            listingStandard.Gap(12f);
+            if (listingStandard.ButtonText("Open Encyclopedia"))
+            {
+                Find.WindowStack.Add(new RimSynapse.UI.Dialog_Wiki());
+            }
 
             listingStandard.End();
             base.DoSettingsWindowContents(inRect);

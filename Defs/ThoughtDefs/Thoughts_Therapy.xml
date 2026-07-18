@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <!-- Successful Therapy (Positive) -->
+  <ThoughtDef>
+    <defName>Synapse_SuccessfulTherapy</defName>
+    <thoughtClass>Thought_Memory</thoughtClass>
+    <durationDays>3.0</durationDays>
+    <stages>
+      <li>
+        <label>successful therapy</label>
+        <description>I had a really good therapy session. It helped me process a lot of negative emotions and feel much better.</description>
+        <baseMoodEffect>10</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+  <!-- Awkward Therapy (Negative) -->
+  <ThoughtDef>
+    <defName>Synapse_AwkwardTherapy</defName>
+    <thoughtClass>Thought_Memory</thoughtClass>
+    <durationDays>1.0</durationDays>
+    <stages>
+      <li>
+        <label>awkward therapy session</label>
+        <description>That therapy session was incredibly awkward and didn't help at all.</description>
+        <baseMoodEffect>-3</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+</Defs>

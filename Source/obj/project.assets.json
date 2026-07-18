@@ -464,11 +464,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "d:\\github\\RimSynapse-Psychology\\Source\\RimSynapsePsychology.csproj",
+      "projectUniqueName": "d:\\github\\rimsynapse\\Psychology\\Source\\RimSynapsePsychology.csproj",
       "projectName": "RimSynapsePsychology",
-      "projectPath": "d:\\github\\RimSynapse-Psychology\\Source\\RimSynapsePsychology.csproj",
+      "projectPath": "d:\\github\\rimsynapse\\Psychology\\Source\\RimSynapsePsychology.csproj",
       "packagesPath": "C:\\Users\\sealt\\.nuget\\packages\\",
-      "outputPath": "d:\\github\\RimSynapse-Psychology\\Source\\obj\\",
+      "outputPath": "d:\\github\\rimsynapse\\Psychology\\Source\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\sealt\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -512,7 +512,7 @@
             "version": "[13.0.3, )"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.422\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.423\\RuntimeIdentifierGraph.json"
       }
     }
   }

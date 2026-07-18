@@ -74,6 +74,34 @@ You MUST respond strictly in valid JSON format. Do not include markdown formatti
   }
 }";
 
+            string dlcInstructions = "";
+            if (ModsConfig.RoyaltyActive)
+            {
+                dlcInstructions += "\n- Royalty DLC: If the colonist recently gained a title or cast psycasts, evaluate if this develops a royal entitlement complex, class friction, or mental fatigue.";
+            }
+            if (ModsConfig.IdeologyActive)
+            {
+                dlcInstructions += "\n- Ideology DLC: If the colonist recently witnessed a ritual or conversion, evaluate if this triggers a crisis of faith or deepens their fanaticism/zealotry.";
+            }
+            if (ModsConfig.BiotechActive)
+            {
+                dlcInstructions += "\n- Biotech DLC: If the colonist gave birth, was vat-grown, or received gene enhancements, reflect their physical/genetic identity dysphoria or parentage complexes.";
+            }
+            if (ModsConfig.AnomalyActive)
+            {
+                dlcInstructions += "\n- Anomaly DLC: If the colonist has void/entity exposure tags in their memories, let it warp their cognitive profile towards void obsession or paranoia.";
+            }
+            if (pawn.Map != null && pawn.Map.Biome != null && pawn.Map.Biome.defName.IndexOf("Space", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                dlcInstructions += "\n- Save Our Ship 2: The colonist is currently in orbit/space. Reflect the psychological impact of cosmic isolation and void melancholy.";
+            }
+
+            if (!string.IsNullOrEmpty(dlcInstructions))
+            {
+                systemPrompt = systemPrompt.Replace("You MUST analyze the 'Tags' attached to their recent memories.",
+                    "You MUST analyze the 'Tags' attached to their recent memories." + dlcInstructions);
+            }
+
             string recentEvents = dailyEvents == null || dailyEvents.Count == 0 
                 ? "No significant memories today." 
                 : string.Join("\n", dailyEvents.Select(e => $"- {e.summary} [Tags: {string.Join(", ", e.tags)}]"));
@@ -153,163 +181,10 @@ Recent Memories:
                 RimSynapsePsychologyMod.ModHandle,
                 systemPrompt,
                 userMessage,
-                result => 
-                {
-                    if (result.success)
-                    {
-                        try
-                        {
-                            // Strip markdown if the LLM wraps it in ```json
-                            string json = result.content.Trim();
-                            if (json.StartsWith("```json")) json = json.Substring(7);
-                            if (json.StartsWith("```")) json = json.Substring(3);
-                            if (json.EndsWith("```")) json = json.Substring(0, json.Length - 3);
-                            json = json.Trim();
-
-                            var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-                            if (parsed != null)
-                            {
-                                foreach (var kvp in parsed)
-                                {
-                                    if (kvp.Key == "SocialAdjustments" && kvp.Value is Newtonsoft.Json.Linq.JObject socialObj)
-                                    {
-                                        var allPawns = (pawn.Map?.mapPawns?.AllPawnsSpawned ?? Enumerable.Empty<Pawn>()).Concat(Find.WorldPawns.AllPawnsAliveOrDead);
-                                        foreach (var property in socialObj.Properties())
-                                        {
-                                            string targetName = property.Name;
-                                            var offsets = property.Value as Newtonsoft.Json.Linq.JObject;
-                                            if (offsets != null)
-                                            {
-                                                Pawn targetPawn = allPawns.FirstOrDefault(p => p.Name != null && p.Name.ToStringShort.Equals(targetName, StringComparison.OrdinalIgnoreCase));
-                                                if (targetPawn != null)
-                                                {
-                                                    string loadId = targetPawn.GetUniqueLoadID();
-                                                    if (!pawnComp.socialNetwork.ContainsKey(loadId))
-                                                    {
-                                                        pawnComp.socialNetwork[loadId] = new RimSynapse.Psychology.Models.SocialRecord();
-                                                    }
-                                                    
-                                                    float trustOff = (float?)offsets["trustOffset"] ?? 0f;
-                                                    float famOff = (float?)offsets["familiarityOffset"] ?? 0f;
-                                                    
-                                                    pawnComp.socialNetwork[loadId].trust = UnityEngine.Mathf.Clamp(pawnComp.socialNetwork[loadId].trust + trustOff, -100f, 100f);
-                                                    pawnComp.socialNetwork[loadId].familiarity = UnityEngine.Mathf.Clamp(pawnComp.socialNetwork[loadId].familiarity + famOff, 0f, 100f);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    else if (kvp.Key == "AbandonmentRiskScore")
-                                    {
-                                        int riskScore = Convert.ToInt32(kvp.Value);
-                                        // Trigger abandonment state if risk is extremely high and they are a free colonist
-                                        if (riskScore > 90 && pawn.IsColonist && !pawn.Downed && !pawn.InMentalState)
-                                        {
-                                            SynapseGameComponent.Enqueue(() =>
-                                            {
-                                                var stateDef = DefDatabase<MentalStateDef>.GetNamedSilentFail("Synapse_MentalState_AbandonColony");
-                                                if (stateDef != null)
-                                                {
-                                                    pawn.mindState.mentalStateHandler.TryStartMentalState(stateDef, "Psychological evaluation", true);
-                                                }
-                                            });
-                                        }
-                                    }
-                                    else if (kvp.Key == "TraitChanges" && kvp.Value is Newtonsoft.Json.Linq.JObject traitObj)
-                                    {
-                                        SynapseGameComponent.Enqueue(() =>
-                                        {
-                                            if (pawn.story == null || pawn.story.traits == null) return;
-                                            
-                                            var addArr = traitObj["Add"] as Newtonsoft.Json.Linq.JArray;
-                                            var removeArr = traitObj["Remove"] as Newtonsoft.Json.Linq.JArray;
-                                            
-                                            if (removeArr != null)
-                                            {
-                                                foreach (var traitName in removeArr)
-                                                {
-                                                    string tName = traitName.ToString();
-                                                    SynapsePsychology.ApplyTraitDirective(pawn, tName, false, "The psychological evaluation determined this trait has decayed or is no longer relevant.");
-                                                }
-                                            }
-                                            
-                                            if (addArr != null)
-                                            {
-                                                foreach (var traitName in addArr)
-                                                {
-                                                    string tName = traitName.ToString();
-                                                    SynapsePsychology.ApplyTraitDirective(pawn, tName, true, "The psychological evaluation determined a profound personality shift.");
-                                                }
-                                            }
-                                        });
-                                    }
-                                    else
-                                    {
-                                        pawnComp.medicalProfile[kvp.Key] = kvp.Value.ToString();
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to parse JSON clinical assessment for {pawn.Name.ToStringShort}: {ex.Message}\nContent: {result.content}");
-                        }
-                        
-                        onComplete?.Invoke(true);
-                    }
-                    else
-                    {
-                        RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to generate clinical assessment for {pawn.Name.ToStringShort}: {result.error}");
-                        onComplete?.Invoke(false);
-                    }
-                    sw.Stop();
-//
-                },
-                options
-            );
-        }
-        public static void SummarizeTherapySession(Pawn initiator, Pawn target, List<string> chatLog)
-        {
-            if (chatLog == null || chatLog.Count == 0) return;
-
-            string fullTranscript = string.Join("\n", chatLog);
-            string systemPrompt = @"You are a clinical psychologist summarizing a therapy session between two colonists.
-Analyze the transcript and extract the key psychological insights, breakthroughs, or recurring themes.
-Return a brief, profound 2-3 sentence summary that will be stored permanently as context for future interactions between these two pawns.
-Do not include markdown or formatting, just the plain text summary.";
-
-            string userMessage = $@"Initiator (Counselor): {initiator.NameShortColored}
-Target (Patient): {target.NameShortColored}
-
-Transcript:
-{fullTranscript}";
-
-            var options = new ChatOptions { priority = -1, requestName = "Therapy Summary", targetName = $"{initiator.NameShortColored} -> {target.NameShortColored}" };
-
-            SynapseClient.PromptAsync(
-                RimSynapsePsychologyMod.ModHandle,
-                systemPrompt,
-                userMessage,
-                result => 
-                {
-                    if (result.success)
-                    {
-                        string summary = result.content.Trim();
-                        // Store the summary in the core memory network or pawn comp for future context
-                        // TriggerOpportunisticMemoryGeneration(target, $"Had a breakthrough in therapy with {initiator.LabelShort}: {summary}", "Therapy, Insight", null);
-                        // TriggerOpportunisticMemoryGeneration(initiator, $"Provided therapy for {target.LabelShort}. Key takeaway: {summary}", "Therapy, Insight", null);
-                    }
-                    else
-                    {
-                        RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] Failed to summarize therapy session: {result.error}");
-                    }
-                },
+                result => ParseEvaluationResult(result, pawn, pawnComp, onComplete, sw),
                 options
             );
         }
     }
 }
-
-
-
-
 
