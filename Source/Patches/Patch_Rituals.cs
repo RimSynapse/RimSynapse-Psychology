@@ -622,66 +622,66 @@ namespace RimSynapse.Psychology.Patches
         }
     }
 
-    [HarmonyPatch(typeof(Dialog_GiveName), "Named")]
-    public static class Patch_Dialog_GiveName_Named
+    [HarmonyPatch(typeof(Dialog_NamePlayerSettlement), "Named")]
+    public static class Patch_Dialog_NamePlayerSettlement_Named
     {
-        public static void Postfix(Dialog_GiveName __instance, string s)
+        public static void Postfix(string s)
+        {
+            Patch_Dialog_ColonyNaming_Helper.OnColonyNamed(s, null);
+        }
+    }
+
+    [HarmonyPatch(typeof(Dialog_NamePlayerFaction), "Named")]
+    public static class Patch_Dialog_NamePlayerFaction_Named
+    {
+        public static void Postfix(string s)
+        {
+            Patch_Dialog_ColonyNaming_Helper.OnColonyNamed(null, s);
+        }
+    }
+
+    public static class Patch_Dialog_ColonyNaming_Helper
+    {
+        public static void OnColonyNamed(string settlementName, string factionName)
         {
             try
             {
-                string typeName = __instance.GetType().Name;
-                if (typeName == "Dialog_NamePlayerSettlement")
-                {
-                    OnColonyNamed(s, null);
-                }
-                else if (typeName == "Dialog_NamePlayerFactionAndBase")
-                {
-                    OnColonyNamed(s, Faction.OfPlayer?.Name);
-                }
-                else if (typeName == "Dialog_NamePlayerFaction")
-                {
-                    OnColonyNamed(null, s);
-                }
+                var worldComp = Find.World?.GetComponent<RimSynapse.SynapseCoreWorldComponent>();
+                if (worldComp == null) return;
+
+                string sName = settlementName ?? Find.CurrentMap?.Parent?.Label ?? "the settlement";
+                string fName = factionName ?? Faction.OfPlayer?.Name ?? "the faction";
+
+                string dateStr = RimWorld.GenDate.DateReadoutStringAt(Find.TickManager.TicksAbs, Find.WorldGrid.LongLatOf(Find.CurrentMap?.Tile ?? 0));
+
+                string logText = $"After surviving the initial landing and securing a foothold, the colonists gathered to formally establish their presence.\n\n" +
+                                 $"They agreed to call their new settlement '{sName}', and their union will be known across this world as '{fName}'.\n\n" +
+                                 $"This declaration marks a permanent commitment to this soil and the beginning of their shared history.";
+
+                // Save the Colony Naming event
+                string eventId = "ColonyNaming_" + Guid.NewGuid().ToString();
+                var record = new PawnEventRecord(
+                    eventId,
+                    "Colony Named: " + sName,
+                    dateStr,
+                    "Colony",
+                    logText
+                );
+
+                worldComp.pawnEventRecords.Add(record);
+                RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse] Successfully generated Colony Named event record: {eventId}");
+
+                // Send a positive event letter
+                Find.LetterStack.ReceiveLetter(
+                    "Colony Formalized",
+                    logText,
+                    LetterDefOf.PositiveEvent
+                );
             }
             catch (Exception ex)
             {
-                RimSynapse.SynapseLogger.Warn("psychology", "Failed in Dialog_GiveName.Named patch: " + ex.Message);
+                RimSynapse.SynapseLogger.Warn("psychology", "Failed to generate Colony Named event record: " + ex.Message);
             }
-        }
-
-        private static void OnColonyNamed(string settlementName, string factionName)
-        {
-            var worldComp = Find.World?.GetComponent<RimSynapse.SynapseCoreWorldComponent>();
-            if (worldComp == null) return;
-
-            string sName = settlementName ?? Find.CurrentMap?.Parent?.Label ?? "the settlement";
-            string fName = factionName ?? Faction.OfPlayer?.Name ?? "the faction";
-
-            string dateStr = RimWorld.GenDate.DateReadoutStringAt(Find.TickManager.TicksAbs, Find.WorldGrid.LongLatOf(Find.CurrentMap?.Tile ?? 0));
-
-            string logText = $"After surviving the initial landing and securing a foothold, the colonists gathered to formally establish their presence.\n\n" +
-                             $"They agreed to call their new settlement '{sName}', and their union will be known across this world as '{fName}'.\n\n" +
-                             $"This declaration marks a permanent commitment to this soil and the beginning of their shared history.";
-
-            // Save the Colony Naming event
-            string eventId = "ColonyNaming_" + Guid.NewGuid().ToString();
-            var record = new PawnEventRecord(
-                eventId,
-                "Colony Named: " + sName,
-                dateStr,
-                "Colony",
-                logText
-            );
-
-            worldComp.pawnEventRecords.Add(record);
-            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse] Successfully generated Colony Named event record: {eventId}");
-
-            // Send a positive event letter
-            Find.LetterStack.ReceiveLetter(
-                "Colony Formalized",
-                logText,
-                LetterDefOf.PositiveEvent
-            );
         }
     }
 }
