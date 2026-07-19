@@ -40,7 +40,7 @@ namespace RimSynapse.Psychology.Patches
         }
     }
 
-    [HarmonyPatch(typeof(LordJob_Ritual), "Tick")]
+    [HarmonyPatch(typeof(LordJob_Ritual), "LordJobTick")]
     public static class Patch_LordJob_Ritual_Tick
     {
         public static void Postfix(LordJob_Ritual __instance)
@@ -76,13 +76,29 @@ namespace RimSynapse.Psychology.Patches
             return AccessTools.TypeByName("RimSynapse.Conversations.Patches.Patch_Pawn_InteractionsTracker_TryInteractWith") != null;
         }
 
-        public static void CaptureStartState(LordJob_Ritual jobRitual)
+        private static Pawn ResolveTargetPawn(LordJob_Ritual jobRitual)
         {
-            if (jobRitual == null || jobRitual.Map == null || jobRitual.lord == null) return;
-            var attendees = jobRitual.lord.ownedPawns.Where(p => p.RaceProps.Humanlike && !p.Dead && p.Spawned).ToList();
-            if (attendees.Count == 0) return;
+            if (jobRitual == null) return null;
 
-            Pawn deceased = null;
+            if (jobRitual.selectedTarget.HasThing)
+            {
+                var thing = jobRitual.selectedTarget.Thing;
+                if (thing is Pawn pawn) return pawn;
+                if (thing is Corpse corpse) return corpse.InnerPawn;
+                if (thing is Building_Grave grave) return grave.Corpse?.InnerPawn;
+            }
+
+            if (jobRitual.assignments != null)
+            {
+                var target = jobRitual.assignments.FirstAssignedPawn("target") ??
+                             jobRitual.assignments.FirstAssignedPawn("recipient") ??
+                             jobRitual.assignments.FirstAssignedPawn("organizer") ??
+                             jobRitual.assignments.FirstAssignedPawn("speaker") ??
+                             jobRitual.assignments.FirstAssignedPawn("leader") ??
+                             jobRitual.assignments.FirstAssignedPawn("moralist");
+                if (target != null) return target;
+            }
+
             try 
             {
                 var obligation = Traverse.Create(jobRitual).Field("obligation").GetValue();
@@ -92,34 +108,62 @@ namespace RimSynapse.Psychology.Patches
                     if (targetInfo != null)
                     {
                         var targetThing = Traverse.Create(targetInfo).Property("Thing").GetValue<Thing>();
-                        deceased = targetThing as Pawn;
-                        if (deceased == null && targetThing is Corpse corpse) deceased = corpse.InnerPawn;
+                        if (targetThing is Pawn p) return p;
+                        if (targetThing is Corpse corpse) return corpse.InnerPawn;
                     }
                 }
             } 
             catch {}
 
-            if (deceased == null) return;
+            return null;
+        }
+
+        public static void CaptureStartState(LordJob_Ritual jobRitual)
+        {
+            if (jobRitual == null || jobRitual.Map == null || jobRitual.lord == null) return;
+            
+            string eventName = "Ceremony";
+            if (jobRitual.Ritual != null)
+            {
+                eventName = jobRitual.Ritual.def.label ?? jobRitual.Ritual.def.defName;
+            }
+            else if (!jobRitual.RitualLabel.NullOrEmpty())
+            {
+                eventName = jobRitual.RitualLabel;
+            }
+
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] CaptureStartState triggered for event {eventName}: {jobRitual.RitualLabel}");
+            
+            var attendees = jobRitual.lord.ownedPawns.Where(p => p.RaceProps.Humanlike && !p.Dead && p.Spawned).ToList();
+            if (attendees.Count == 0) return;
+
+            Pawn targetPawn = ResolveTargetPawn(jobRitual);
+            if (targetPawn == null)
+            {
+                RimSynapse.SynapseLogger.Warn("psychology", $"[RimSynapse-Psychology] CaptureStartState: Could not identify target pawn for {eventName}.");
+                return;
+            }
 
             var state = new FuneralStartState
             {
                 weather = jobRitual.Map.weatherManager.curWeather.label,
                 timeOfDay = GenLocalDate.HourOfDay(jobRitual.Map) < 12 ? "morning" : (GenLocalDate.HourOfDay(jobRitual.Map) < 17 ? "afternoon" : "evening"),
                 averageMood = (float)attendees.Average(p => p.needs?.mood?.CurLevel ?? 0.5f),
-                averageOpinion = (float)attendees.Average(p => p.relations?.OpinionOf(deceased) ?? 0),
+                averageOpinion = (float)attendees.Average(p => p.relations?.OpinionOf(targetPawn) ?? 0),
                 attendees = attendees
             };
 
             var reasons = new List<string>();
             if (attendees.Any(p => p.needs?.food?.Starving == true)) reasons.Add("starving");
             if (attendees.Any(p => p.needs?.rest?.CurCategory == RestCategory.Exhausted)) reasons.Add("exhausted");
-            state.moodReason = reasons.Count > 0 ? string.Join(" and ", reasons) : "grief";
+            state.moodReason = reasons.Count > 0 ? string.Join(" and ", reasons) : (eventName.ToLower().Contains("funeral") ? "grief" : "joy");
 
             s_StartStates[jobRitual] = state;
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] CaptureStartState complete for target: {targetPawn.Name.ToStringShort}. Attendees: {attendees.Count}");
 
             if (IsConversationsActive())
             {
-                PreGenerateEulogies(deceased, attendees, state);
+                PreGenerateEulogies(targetPawn, attendees, state, eventName);
             }
         }
 
@@ -128,29 +172,32 @@ namespace RimSynapse.Psychology.Patches
             public Dictionary<string, string> eulogies;
         }
 
-        private static void PreGenerateEulogies(Pawn deceased, List<Pawn> attendees, FuneralStartState state)
+        private static void PreGenerateEulogies(Pawn targetPawn, List<Pawn> attendees, FuneralStartState state, string eventName)
         {
-            string systemPrompt = $"You are role-playing as the minds of a group of RimWorld pawns preparing to attend the funeral of {deceased.Name.ToStringShort}.\n" +
-                                  $"For each pawn, write a short, personal, one-sentence eulogy statement they would say if they step forward to speak about the deceased.\n" +
-                                  $"The statement must be in the first-person (\"I remember...\", \"{deceased.Name.ToStringShort} was...\").\n" +
-                                  $"Make it fit their opinion and relationship. If they disliked the deceased, make it cold or formal. If they loved them, make it emotional.\n\n" +
-                                  $"Response must be strictly in JSON format:\n" +
-                                  $"{{\n" +
-                                  $"  \"eulogies\": {{\n" +
-                                  $"    \"PawnID_1\": \"Eulogy statement...\",\n" +
-                                  $"    \"PawnID_2\": \"Eulogy statement...\"\n" +
-                                  $"  }}\n" +
-                                  $"}}";
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Pre-generating speeches/remarks for {attendees.Count} attendees for event {eventName}...");
+            
+            string statementName = eventName.ToLower().Contains("funeral") ? "eulogy statement" : "reaction/congratulatory statement";
+            string systemPrompt = $"You are role-playing as the minds of a group of RimWorld pawns preparing to attend the ceremony: {eventName}.\n" +
+                                   $"For each pawn, write a short, personal, one-sentence {statementName} they would say if they step forward to speak about the event and {targetPawn.Name.ToStringShort}.\n" +
+                                   $"The statement must be in the first-person (\"I remember...\", \"{targetPawn.Name.ToStringShort} is...\").\n" +
+                                   $"Make it fit their opinion and relationship.\n\n" +
+                                   $"Response must be strictly in JSON format:\n" +
+                                   $"{{\n" +
+                                   $"  \"eulogies\": {{\n" +
+                                   $"    \"PawnID_1\": \"Statement text...\",\n" +
+                                   $"    \"PawnID_2\": \"Statement text...\"\n" +
+                                   $"  }}\n" +
+                                   $"}}";
 
             string attendeesList = "";
             foreach (var p in attendees)
             {
-                string rel = p.relations?.OpinionOf(deceased).ToString() ?? "0";
+                string rel = p.relations?.OpinionOf(targetPawn).ToString() ?? "0";
                 string traits = string.Join(", ", p.story?.traits?.allTraits?.Select(t => t.Label) ?? Enumerable.Empty<string>());
                 string relationLabel = "Guest";
                 if (p.relations != null && p.relations.DirectRelations != null)
                 {
-                    var relInfo = p.relations.DirectRelations.FirstOrDefault(r => r.otherPawn == deceased);
+                    var relInfo = p.relations.DirectRelations.FirstOrDefault(r => r.otherPawn == targetPawn);
                     if (relInfo != null && relInfo.def != null)
                     {
                         relationLabel = relInfo.def.label;
@@ -159,7 +206,7 @@ namespace RimSynapse.Psychology.Patches
                 attendeesList += $"- {p.Name.ToStringShort} (ID: {p.ThingID}): Traits: {traits}, Opinion: {rel}, Relation: {relationLabel}\n";
             }
 
-            string userMessage = $"Deceased: {deceased.Name.ToStringShort} (ID: {deceased.ThingID})\n" +
+            string userMessage = $"Target: {targetPawn.Name.ToStringShort} (ID: {targetPawn.ThingID})\n" +
                                  $"Attendees:\n{attendeesList}";
 
             SynapseClient.PromptAsync(
@@ -184,55 +231,72 @@ namespace RimSynapse.Psychology.Patches
                                         {
                                             state.preGeneratedEulogies[kvp.Key] = kvp.Value;
                                         }
+                                        RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Successfully pre-generated {state.preGeneratedEulogies.Count} speeches.");
                                     });
                                 }
                             }
                         }
                         catch (Exception ex)
                         {
-                            RimSynapse.SynapseLogger.Warn("psychology", $"Failed to parse pre-generated eulogies: {ex.Message}");
+                            RimSynapse.SynapseLogger.Warn("psychology", $"Failed to parse pre-generated speeches: {ex.Message}");
                         }
                     }
                 },
-                new ChatOptions { priority = 4, requestName = "Pre-Generate Eulogies" }
+                new ChatOptions { priority = 4, requestName = "Pre-Generate Ceremony Speeches" }
             );
         }
 
         public static void Postfix(LordJob_Ritual jobRitual, Dictionary<Pawn, int> totalPresence)
         {
             if (jobRitual == null || jobRitual.assignments == null) return;
-            var speaker = jobRitual.assignments.FirstAssignedPawn("speaker");
             
-            Pawn deceased = null;
-            try 
+            string eventName = "Ceremony";
+            if (jobRitual.Ritual != null)
             {
-                var obligation = Traverse.Create(jobRitual).Field("obligation").GetValue();
-                if (obligation != null) 
-                {
-                    var targetInfo = Traverse.Create(obligation).Field("targetA").GetValue();
-                    if (targetInfo != null)
-                    {
-                        var targetThing = Traverse.Create(targetInfo).Property("Thing").GetValue<Thing>();
-                        deceased = targetThing as Pawn;
-                        if (deceased == null && targetThing is Corpse corpse) deceased = corpse.InnerPawn;
-                    }
-                }
-            } 
-            catch {}
+                eventName = jobRitual.Ritual.def.label ?? jobRitual.Ritual.def.defName;
+            }
+            else if (!jobRitual.RitualLabel.NullOrEmpty())
+            {
+                eventName = jobRitual.RitualLabel;
+            }
 
-            if (deceased == null && speaker != null && speaker.Map != null)
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Postfix triggered for LordJob_Ritual event {eventName}: {jobRitual.RitualLabel}");
+            
+            var speaker = jobRitual.assignments.FirstAssignedPawn("speaker") ?? jobRitual.assignments.FirstAssignedPawn("organizer");
+            
+            Pawn targetPawn = ResolveTargetPawn(jobRitual);
+            if (targetPawn == null && speaker != null && speaker.Map != null)
             {
+                // Fallback for funerals: search nearby dead pawns
                 foreach (var p in speaker.Map.mapPawns.AllPawns)
                 {
-                    if (p.Dead && p.Corpse != null && p.Corpse.Position.DistanceTo(speaker.Position) < 20f)
+                    if (p.Dead)
                     {
-                        deceased = p;
-                        break;
+                        var corpse = p.Corpse;
+                        if (corpse != null)
+                        {
+                            if (corpse.Spawned && corpse.Position.DistanceTo(speaker.Position) < 25f)
+                            {
+                                targetPawn = p;
+                                break;
+                            }
+                            else if (corpse.ParentHolder is Building_Grave grave && grave.Spawned && grave.Position.DistanceTo(speaker.Position) < 25f)
+                            {
+                                targetPawn = p;
+                                break;
+                            }
+                        }
                     }
                 }
             }
 
-            if (deceased == null) return;
+            if (targetPawn == null)
+            {
+                RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Postfix exited early: target pawn not found for event {eventName}.");
+                return;
+            }
+
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Postfix processing target: {targetPawn.Name.ToStringShort} for event {eventName}");
 
             FuneralStartState startState = null;
             if (s_StartStates.TryGetValue(jobRitual, out var captured))
@@ -302,7 +366,7 @@ namespace RimSynapse.Psychology.Patches
                 else
                 {
                     var comp = speaker.GetComp<SynapsePawnComp>();
-                    if (comp != null && comp.socialNetwork.TryGetValue(deceased.GetUniqueLoadID(), out var record))
+                    if (comp != null && comp.socialNetwork.TryGetValue(targetPawn.GetUniqueLoadID(), out var record))
                     {
                         if (record.relationshipMemories.Count > 0)
                         {
@@ -314,11 +378,16 @@ namespace RimSynapse.Psychology.Patches
 
             if (speaker != null && !string.IsNullOrEmpty(memory))
             {
+                string letterTitle = eventName.ToLower().Contains("funeral") ? $"{speaker.Name.ToStringShort}'s Eulogy" : $"{speaker.Name.ToStringShort}'s Speech";
+                string letterDesc = eventName.ToLower().Contains("funeral")
+                    ? $"During the funeral, {speaker.Name.ToStringShort} shared a personal memory of {targetPawn.Name.ToStringShort}:\n\n\"{memory}\""
+                    : $"During the ceremony, {speaker.Name.ToStringShort} spoke about the event:\n\n\"{memory}\"";
+
                 if (outcomeLabel == "terrible" || outcomeLabel == "boring")
                 {
                     Find.LetterStack.ReceiveLetter(
-                        $"{speaker.Name.ToStringShort}'s Awkward Eulogy",
-                        $"During the funeral, {speaker.Name.ToStringShort} stepped forward to share a memory of {deceased.Name.ToStringShort}, but the service was {outcomeLabel} and the eulogy was received poorly:\n\n\"{memory}\"",
+                        letterTitle + " (Awkward)",
+                        letterDesc + $"\n\nHowever, the ceremony was received poorly ({outcomeLabel}).",
                         LetterDefOf.NegativeEvent,
                         speaker
                     );
@@ -326,25 +395,46 @@ namespace RimSynapse.Psychology.Patches
                 else
                 {
                     Find.LetterStack.ReceiveLetter(
-                        $"{speaker.Name.ToStringShort}'s Eulogy",
-                        $"During the funeral, {speaker.Name.ToStringShort} stepped forward and shared a personal memory of {deceased.Name.ToStringShort}:\n\n\"{memory}\"",
+                        letterTitle,
+                        letterDesc,
                         LetterDefOf.PositiveEvent,
                         speaker
                     );
                 }
             }
 
-            GenerateFuneralRecordAndMemories(deceased, outcomeLabel, startState, attendees, memoryWeight, memoryDecay);
+            GenerateEventRecordAndMemories(targetPawn, outcomeLabel, startState, attendees, memoryWeight, memoryDecay, eventName);
+        }
+
+        public class FuneralEulogy
+        {
+            public string speaker;
+            public string text;
+        }
+
+        public class FuneralComment
+        {
+            public string commenter;
+            public string text;
         }
 
         public class FuneralResponse
         {
             public string overallRecord;
+            public List<FuneralEulogy> eulogies;
+            public List<FuneralComment> comments;
             public Dictionary<string, string> pawnMemories;
         }
 
-        private static void GenerateFuneralRecordAndMemories(Pawn deceased, string outcomeLabel, FuneralStartState startState, HashSet<Pawn> attendees, float memoryWeight, float memoryDecay)
+        public static void GenerateFuneralRecordAndMemories(Pawn deceased, string outcomeLabel, FuneralStartState startState, HashSet<Pawn> attendees, float memoryWeight, float memoryDecay)
         {
+            GenerateEventRecordAndMemories(deceased, outcomeLabel, startState, attendees, memoryWeight, memoryDecay, "Funeral");
+        }
+
+        public static void GenerateEventRecordAndMemories(Pawn targetPawn, string outcomeLabel, FuneralStartState startState, HashSet<Pawn> attendees, float memoryWeight, float memoryDecay, string eventName)
+        {
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Generating ceremony record and memories for {attendees.Count} attendees. Event: {eventName}, Target: {targetPawn.Name.ToStringShort}, Outcome: {outcomeLabel}");
+            
             var placeholderTags = new Dictionary<string, string>();
             foreach (var attendee in attendees)
             {
@@ -352,14 +442,14 @@ namespace RimSynapse.Psychology.Patches
                 if (coreComp != null)
                 {
                     string placeholderId = Guid.NewGuid().ToString("N");
-                    string placeholderTag = "funeral_placeholder_" + placeholderId;
+                    string placeholderTag = "ceremony_placeholder_" + placeholderId;
                     placeholderTags[attendee.ThingID] = placeholderTag;
 
                     var placeholder = new WeightedMemory
                     {
-                        summary = $"Attended the funeral of {deceased.Name.ToStringShort}. The service was {outcomeLabel}.",
+                        summary = $"Attended the {eventName} of {targetPawn.Name.ToStringShort}. The ceremony was {outcomeLabel}.",
                         memoryType = "social",
-                        tags = new List<string> { "funeral", deceased.ThingID, placeholderTag },
+                        tags = new List<string> { "ceremony", targetPawn.ThingID, placeholderTag },
                         absTick = RimSynapse.Utils.SynapseDateHelper.GameTickToAbsTick(Find.TickManager.TicksGame),
                         gameTick = Find.TickManager.TicksGame,
                         weight = memoryWeight,
@@ -376,34 +466,43 @@ namespace RimSynapse.Psychology.Patches
             float averageMood = startState?.averageMood ?? 0.5f;
             float averageOpinion = startState?.averageOpinion ?? 0f;
 
-            string systemPrompt = $"You are role-playing as the narrator and subconscious minds of a group of RimWorld pawns attending the funeral of {deceased.Name.ToStringShort}.\n" +
-                                  $"The service occurred during a {weather} {timeOfDay}. The overall mood of attendees was {moodReason} (average: {averageMood:F2}), and their average opinion of the deceased was {averageOpinion:F1}.\n" +
-                                  $"The overall outcome of the service was: {outcomeLabel}.\n\n" +
-                                  $"You must generate two things:\n" +
-                                  $"1. An overall detailed narrative of the funeral service (to be saved at the gravesite). Describe the atmosphere, how the weather and mood played in, and how the attendees reacted to the {outcomeLabel} outcome. Keep it beautiful and thematic.\n" +
-                                  $"2. A short first-person journal entry/memory for EACH attendee.\n" +
-                                  $"   - Standard memory: 1-2 sentences.\n" +
-                                  $"   - Lover / Spouse / Close Friend / Bitter Rival: 3-4 sentences, expressing deeper feelings (relief, profound grief, hidden satisfaction).\n" +
-                                  $"   - Write in the first person (\"I felt...\", \"Seeing them...\").\n\n" +
-                                  $"Response must be strictly in JSON format:\n" +
-                                  $"{{\n" +
-                                  $"  \"overallRecord\": \"The detailed narrative of the funeral...\",\n" +
-                                  $"  \"pawnMemories\": {{\n" +
-                                  $"    \"PawnID_1\": \"Memory text...\",\n" +
-                                  $"    \"PawnID_2\": \"Memory text...\"\n" +
-                                  $"  }}\n" +
-                                  $"}}";
+            string systemPrompt = $"You are role-playing as the narrator and subconscious minds of a group of RimWorld pawns attending a ceremony: {eventName}.\n" +
+                                   $"The focus/target of this ceremony was {targetPawn.Name.ToStringShort}.\n" +
+                                   $"The ceremony occurred during a {weather} {timeOfDay}. The overall mood of attendees was {moodReason} (average: {averageMood:F2}), and their average opinion of {targetPawn.Name.ToStringShort} was {averageOpinion:F1}.\n" +
+                                   $"The overall outcome of the ceremony was: {outcomeLabel}.\n\n" +
+                                   $"You must generate the following details:\n" +
+                                   $"1. An overall detailed narrative of the ceremony. Describe the atmosphere, the significance of the event, and how the attendees reacted to the {outcomeLabel} outcome. Keep it engaging, beautiful, and thematic.\n" +
+                                   $"2. A list of speeches, remarks, or vows spoken by the attendees. Every attendee (listed below) should deliver a brief spoken reaction or memory (1-2 sentences) about the event and {targetPawn.Name.ToStringShort}.\n" +
+                                   $"3. A list of comments and remarks made by attendees during the ceremony (reacting to the speeches or sharing quiet thoughts).\n" +
+                                   $"4. A short first-person journal entry/memory for EACH attendee (used as their personal in-game memory).\n" +
+                                   $"   - Standard memory: 1-2 sentences.\n" +
+                                   $"   - Lover / Spouse / Close Friend / Bitter Rival: 3-4 sentences, expressing deeper feelings.\n" +
+                                   $"   - Write in the first person (\"I felt...\", \"Seeing them...\").\n\n" +
+                                   $"Response must be strictly in JSON format:\n" +
+                                   $"{{\n" +
+                                   $"  \"overallRecord\": \"The detailed narrative of the ceremony...\",\n" +
+                                   $"  \"eulogies\": [\n" +
+                                   $"    {{ \"speaker\": \"PawnName\", \"text\": \"Speech/vow/reaction text...\" }}\n" +
+                                   $"  ],\n" +
+                                   $"  \"comments\": [\n" +
+                                   $"    {{ \"commenter\": \"PawnName\", \"text\": \"Comment text...\" }}\n" +
+                                   $"  ],\n" +
+                                   $"  \"pawnMemories\": {{\n" +
+                                   $"    \"PawnID_1\": \"Memory text...\",\n" +
+                                   $"    \"PawnID_2\": \"Memory text...\"\n" +
+                                   $"  }}\n" +
+                                   $"}}";
 
             string attendeesList = "";
             foreach (var p in attendees)
             {
-                string rel = p.relations?.OpinionOf(deceased).ToString() ?? "0";
+                string rel = p.relations?.OpinionOf(targetPawn).ToString() ?? "0";
                 string traits = string.Join(", ", p.story?.traits?.allTraits?.Select(t => t.Label) ?? Enumerable.Empty<string>());
                 string relationLabel = "Guest";
                 
                 if (p.relations != null && p.relations.DirectRelations != null)
                 {
-                    var relInfo = p.relations.DirectRelations.FirstOrDefault(r => r.otherPawn == deceased);
+                    var relInfo = p.relations.DirectRelations.FirstOrDefault(r => r.otherPawn == targetPawn);
                     if (relInfo != null && relInfo.def != null)
                     {
                         relationLabel = relInfo.def.label;
@@ -413,7 +512,7 @@ namespace RimSynapse.Psychology.Patches
                 attendeesList += $"- {p.Name.ToStringShort} (ID: {p.ThingID}): Traits: {traits}, Opinion: {rel}, Relation: {relationLabel}\n";
             }
 
-            string userMessage = $"Deceased: {deceased.Name.ToStringShort} (ID: {deceased.ThingID})\n" +
+            string userMessage = $"Target: {targetPawn.Name.ToStringShort} (ID: {targetPawn.ThingID})\n" +
                                  $"Attendees:\n{attendeesList}";
 
             SynapseClient.PromptAsync(
@@ -434,14 +533,53 @@ namespace RimSynapse.Psychology.Patches
                                 {
                                     SynapseGameComponent.Enqueue(() =>
                                     {
-                                        var worldComp = Find.World?.GetComponent<SynapsePsychologyWorldComponent>();
-                                        if (worldComp != null)
-                                        {
-                                            worldComp.funeralRecords[deceased.GetUniqueLoadID()] = response.overallRecord;
-                                        }
+                                         var worldComp = Find.World?.GetComponent<SynapsePsychologyWorldComponent>();
+                                         var coreWorldComp = Find.World?.GetComponent<RimSynapse.SynapseCoreWorldComponent>();
+                                         if (worldComp != null && coreWorldComp != null)
+                                         {
+                                             string finalRecord = response.overallRecord;
+
+                                             if (response.eulogies != null && response.eulogies.Count > 0)
+                                             {
+                                                 string title = eventName.ToLower().Contains("funeral") ? "Spoken Eulogies" : "Speeches and Remarks";
+                                                 finalRecord += $"\n\n───────────────────────────────────────\n\n{title}:\n";
+                                                 foreach (var eulogy in response.eulogies)
+                                                 {
+                                                     finalRecord += $"\n{eulogy.speaker}:\n  \"{eulogy.text}\"";
+                                                 }
+                                             }
+
+                                             if (response.comments != null && response.comments.Count > 0)
+                                             {
+                                                 finalRecord += "\n\n───────────────────────────────────────\n\nComments and Remarks:\n";
+                                                 foreach (var comment in response.comments)
+                                                 {
+                                                     finalRecord += $"\n{comment.commenter}:\n  \"{comment.text}\"";
+                                                 }
+                                             }
+
+                                             // Save in legacy funeralRecords if it's a funeral
+                                             if (eventName.ToLower().Contains("funeral"))
+                                             {
+                                                 worldComp.funeralRecords[targetPawn.GetUniqueLoadID()] = finalRecord;
+                                             }
+
+                                             // Save generic PawnEventRecord
+                                             string dateStr = GenDate.DateReadoutStringAt(Find.TickManager.TicksAbs, Find.WorldGrid.LongLatOf(targetPawn.Tile));
+                                             var newRecord = new PawnEventRecord(
+                                                 Guid.NewGuid().ToString("N"),
+                                                 eventName,
+                                                 dateStr,
+                                                 targetPawn.Name.ToStringShort,
+                                                 finalRecord
+                                             );
+                                             coreWorldComp.pawnEventRecords.Add(newRecord);
+                                             RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Successfully saved ceremony record for {targetPawn.Name.ToStringShort}. Length: {finalRecord.Length}");
+                                         }
 
                                         if (response.pawnMemories != null)
                                         {
+                                            int updated = 0;
                                             foreach (var kvp in response.pawnMemories)
                                             {
                                                 string pId = kvp.Key;
@@ -457,10 +595,12 @@ namespace RimSynapse.Psychology.Patches
                                                         {
                                                             targetMem.summary = explanation;
                                                             targetMem.tags.Remove(pTag);
+                                                            updated++;
                                                         }
                                                     }
                                                 }
                                             }
+                                            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse-Psychology] Successfully updated {updated} attendee memories.");
                                         }
                                     });
                                 }
@@ -468,11 +608,79 @@ namespace RimSynapse.Psychology.Patches
                         }
                         catch (Exception ex)
                         {
-                            RimSynapse.SynapseLogger.Warn("psychology", $"Failed to process funeral record and memories: {ex.Message}");
+                            RimSynapse.SynapseLogger.Warn("psychology", $"Failed to process ceremony record and memories: {ex.Message}");
                         }
                     }
                 },
-                new ChatOptions { priority = 3, requestName = "Personalized Funeral Memory" }
+                new ChatOptions 
+                { 
+                    priority = 3, 
+                    requestName = "Personalized Ceremony Memory",
+                    targetName = targetPawn?.Name?.ToStringShort ?? "Ceremony"
+                }
+            );
+        }
+    }
+
+    [HarmonyPatch(typeof(Dialog_GiveName), "Named")]
+    public static class Patch_Dialog_GiveName_Named
+    {
+        public static void Postfix(Dialog_GiveName __instance, string s)
+        {
+            try
+            {
+                string typeName = __instance.GetType().Name;
+                if (typeName == "Dialog_NamePlayerSettlement")
+                {
+                    OnColonyNamed(s, null);
+                }
+                else if (typeName == "Dialog_NamePlayerFactionAndBase")
+                {
+                    OnColonyNamed(s, Faction.OfPlayer?.Name);
+                }
+                else if (typeName == "Dialog_NamePlayerFaction")
+                {
+                    OnColonyNamed(null, s);
+                }
+            }
+            catch (Exception ex)
+            {
+                RimSynapse.SynapseLogger.Warn("psychology", "Failed in Dialog_GiveName.Named patch: " + ex.Message);
+            }
+        }
+
+        private static void OnColonyNamed(string settlementName, string factionName)
+        {
+            var worldComp = Find.World?.GetComponent<RimSynapse.SynapseCoreWorldComponent>();
+            if (worldComp == null) return;
+
+            string sName = settlementName ?? Find.CurrentMap?.Parent?.Label ?? "the settlement";
+            string fName = factionName ?? Faction.OfPlayer?.Name ?? "the faction";
+
+            string dateStr = RimWorld.GenDate.DateReadoutStringAt(Find.TickManager.TicksAbs, Find.WorldGrid.LongLatOf(Find.CurrentMap?.Tile ?? 0));
+
+            string logText = $"After surviving the initial landing and securing a foothold, the colonists gathered to formally establish their presence.\n\n" +
+                             $"They agreed to call their new settlement '{sName}', and their union will be known across this world as '{fName}'.\n\n" +
+                             $"This declaration marks a permanent commitment to this soil and the beginning of their shared history.";
+
+            // Save the Colony Naming event
+            string eventId = "ColonyNaming_" + Guid.NewGuid().ToString();
+            var record = new PawnEventRecord(
+                eventId,
+                "Colony Named: " + sName,
+                dateStr,
+                "Colony",
+                logText
+            );
+
+            worldComp.pawnEventRecords.Add(record);
+            RimSynapse.SynapseLogger.Info("psychology", $"[RimSynapse] Successfully generated Colony Named event record: {eventId}");
+
+            // Send a positive event letter
+            Find.LetterStack.ReceiveLetter(
+                "Colony Formalized",
+                logText,
+                LetterDefOf.PositiveEvent
             );
         }
     }
