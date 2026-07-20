@@ -19,9 +19,10 @@ Breathe genuine psychological depth into your colonists. RimSynapse Psychology r
 
 ---
 
-[h2]Changelog (v0.5.0)[/h2]
+[h2]Changelog (v0.5.1)[/h2]
 [list]
-[*] [b]Full Anomaly & Odyssey Support:[/b] Integrated cosmic horror PTSD and space/orbital-aware memory tracking.
+[*] [b]NEW: Memory Tab Visibility filters:[/b] Hides cluttering short-term social and conversation memories by default, adding a "Show Short Term Memories" checkbox toggle to show them.
+[*] [b]NEW: Dynamic Warden recruitment patches:[/b] Re-engineered the prisoner recruitment success patch to link dynamically to `RecruitChance` via reflection, preventing compatibility crashes.
 [*] [b]Performance Tuning:[/b] Substantially optimized background memory processing logic.
 [/list]
 
